@@ -1,38 +1,104 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
+import {
+  fetchKpIndex,
+  fetchKpForecast,
+  fetchSolarWindPlasma,
+  fetchSolarWindMag,
+  fetchAlerts,
+  fetchNoaaScales,
+} from "@/lib/spacewx/fetchers";
+import {
+  normalizeKp,
+  normalizeKpForecast,
+  normalizeSolarWind,
+  normalizeAlerts,
+  normalizeNoaaScaleG,
+} from "@/lib/spacewx/normalizers";
 
-export async function GET(request: NextRequest) {
+// Only allow POST — return 405 for other methods
+export async function GET() {
+  return NextResponse.json({ error: "Method not allowed" }, { status: 405 });
+}
+
+export async function PUT() {
+  return NextResponse.json({ error: "Method not allowed" }, { status: 405 });
+}
+
+export async function DELETE() {
+  return NextResponse.json({ error: "Method not allowed" }, { status: 405 });
+}
+
+export async function POST(request: NextRequest) {
+  // Verify secret
+  const secret = request.headers.get("x-cron-secret");
+  if (secret !== process.env.CRON_SECRET) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const warnings: string[] = [];
+
   try {
-    const { searchParams } = new URL(request.url);
-    const from = searchParams.get("from");
-    const to = searchParams.get("to");
+    const results = await Promise.allSettled([
+      fetchKpIndex(),
+      fetchKpForecast(),
+      fetchSolarWindPlasma(),
+      fetchSolarWindMag(),
+      fetchAlerts(),
+      fetchNoaaScales(),
+    ]);
 
-    if (!from || !to) {
+    const get = <T>(r: PromiseSettledResult<T>, name: string): T | null => {
+      if (r.status === "fulfilled" && r.value != null) return r.value;
+      warnings.push(`${name} unavailable`);
+      return null;
+    };
+
+    const rawKp = get(results[0], "NOAA K-index");
+    const rawForecast = get(results[1], "NOAA Kp forecast");
+    const rawPlasma = get(results[2], "Solar wind plasma");
+    const rawMag = get(results[3], "Solar wind magnetic field");
+    const rawAlerts = get(results[4], "NOAA alerts");
+    const rawScales = get(results[5], "NOAA scales");
+
+    const kp = rawKp !== null ? normalizeKp(rawKp) : null;
+    const forecast =
+      rawForecast !== null ? normalizeKpForecast(rawForecast) : null;
+    const solarWind = normalizeSolarWind(rawPlasma, rawMag);
+    const alerts = rawAlerts !== null ? normalizeAlerts(rawAlerts) : [];
+
+    if (kp === null && !solarWind && alerts.length === 0) {
       return NextResponse.json(
-        { error: "Both 'from' and 'to' ISO‑8601 timestamps are required." },
-        { status: 400 },
-      );
-    }
-
-    const { data, error } = await supabaseAdmin
-      .from("space_weather_snapshots")
-      .select("*")
-      .gte("timestamp", from)
-      .lte("timestamp", to)
-      .order("timestamp", { ascending: true })
-      .limit(1000); // safety cap for very wide ranges
-
-    if (error) {
-      console.error("GET /api/snapshots error:", error);
-      return NextResponse.json(
-        { error: "Failed to fetch snapshots" },
+        { error: "All data sources unavailable", warnings },
         { status: 500 },
       );
     }
 
-    return NextResponse.json({ snapshots: data ?? [] });
+    const { error } = await supabaseAdmin
+      .from("space_weather_snapshots")
+      .insert({
+        kp,
+        solar_wind_speed: solarWind?.speed ?? null,
+        solar_wind_bz: solarWind?.bz ?? null,
+        alert_count: alerts.length,
+        raw_data: {
+          flares: [],
+          cmes: [],
+          alerts,
+        },
+      });
+
+    if (error) {
+      console.error("Snapshot insert error:", error);
+      return NextResponse.json(
+        { error: "Failed to store snapshot" },
+        { status: 500 },
+      );
+    }
+
+    return NextResponse.json({ status: "ok", warnings });
   } catch (err: any) {
-    console.error("GET /api/snapshots error:", err);
+    console.error("Cron snapshot error:", err);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 },
