@@ -1,0 +1,19 @@
+# .github/workflows/snapshot.yml
+name: Snapshot Space Weather
+
+on:
+  schedule:
+    # Every 12 hours (00:00 and 12:00 UTC)
+    - cron: "0 */12 * * *"
+  workflow_dispatch: # allow manual trigger for testing
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger snapshot endpoint
+        run: |
+          curl -X POST https://spacewx-translator.vercel.app/api/cron/snapshot \
+            -H "x-cron-secret: ${{ secrets.CRON_SECRET }}" \
+            -H "Content-Type: application/json" \
+            --fail --silent --show-error
