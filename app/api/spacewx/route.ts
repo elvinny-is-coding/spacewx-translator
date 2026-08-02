@@ -1,7 +1,8 @@
 import {
   fetchKpIndex,
   fetchKpForecast,
-  fetchSolarWind,
+  fetchSolarWindPlasma,
+  fetchSolarWindMag,
   fetchAlerts,
   fetchNoaaScales,
   fetchDonkiFlares,
@@ -23,7 +24,8 @@ export async function GET() {
     const [
       kpResult,
       forecastResult,
-      solarWindResult,
+      plasmaResult,
+      magResult,
       alertsResult,
       scaleResult,
       donkiFlareResult,
@@ -31,7 +33,8 @@ export async function GET() {
     ] = await Promise.allSettled([
       fetchKpIndex(),
       fetchKpForecast(),
-      fetchSolarWind(),
+      fetchSolarWindPlasma(),
+      fetchSolarWindMag(),
       fetchAlerts(),
       fetchNoaaScales(),
       fetchDonkiFlares(),
@@ -54,7 +57,8 @@ export async function GET() {
 
     const rawKp = getValue(kpResult, "NOAA K-index");
     const rawForecast = getValue(forecastResult, "NOAA Kp forecast");
-    const rawSolarWind = getValue(solarWindResult, "Solar wind");
+    const rawPlasma = getValue(plasmaResult, "Solar wind plasma");
+    const rawMag = getValue(magResult, "Solar wind magnetic field");
     const rawAlerts = getValue(alertsResult, "NOAA alerts");
     const rawScales = getValue(scaleResult, "NOAA scales");
     const rawFlares = getValue(donkiFlareResult, "DONKI flares");
@@ -64,7 +68,7 @@ export async function GET() {
       kp: rawKp !== null ? normalizeKp(rawKp) : null,
       kpForecast:
         rawForecast !== null ? normalizeKpForecast(rawForecast) : null,
-      solarWind: normalizeSolarWind(rawSolarWind),
+      solarWind: normalizeSolarWind(rawPlasma, rawMag),
       alerts: rawAlerts !== null ? normalizeAlerts(rawAlerts) : [],
       flares: rawFlares !== null ? normalizeFlares(rawFlares) : [],
       cmes: rawCMEs !== null ? normalizeCMEs(rawCMEs) : [],
