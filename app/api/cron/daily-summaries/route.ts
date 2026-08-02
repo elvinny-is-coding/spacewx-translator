@@ -118,6 +118,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  const errors: Record<string, any> = {};
+
   try {
     // Fetch all sources, including OVATION
     const [kpR, plasmaR, magR, alertsR, scalesR, flaresR, cmesR, ovationR] =
@@ -176,7 +178,7 @@ export async function POST(request: NextRequest) {
 
     const alertSummary = buildAlertSummaryText(scales, alerts);
 
-    // ── Cache alerts into latest_alerts (singleton row) ──
+    // ── Cache alerts into latest_alerts ──
     if (alertsR.status === "fulfilled") {
       const { error: alertCacheErr } = await supabaseAdmin
         .from("latest_alerts")
@@ -184,8 +186,14 @@ export async function POST(request: NextRequest) {
           { id: 1, alerts: alerts, updated_at: new Date().toISOString() },
           { onConflict: "id" },
         );
-      if (alertCacheErr)
+      if (alertCacheErr) {
         console.error("Failed to cache alerts:", alertCacheErr);
+        errors.latest_alerts = {
+          message: alertCacheErr.message,
+          hint: alertCacheErr.hint,
+          code: alertCacheErr.code,
+        };
+      }
     }
 
     // ── Cache OVATION data ──
@@ -203,10 +211,17 @@ export async function POST(request: NextRequest) {
             },
             { onConflict: "id" },
           );
-        if (ovationCacheErr)
+        if (ovationCacheErr) {
           console.error("Failed to cache OVATION:", ovationCacheErr);
-      } catch (err) {
+          errors.latest_ovation = {
+            message: ovationCacheErr.message,
+            hint: ovationCacheErr.hint,
+            code: ovationCacheErr.code,
+          };
+        }
+      } catch (err: any) {
         console.warn("OVATION reshape/insert failed:", err);
+        errors.latest_ovation = { message: err.message ?? "Unknown error" };
       }
     }
 
@@ -253,6 +268,11 @@ export async function POST(request: NextRequest) {
 
       if (error) {
         console.error(`Failed to upsert summary for ${audience}:`, error);
+        errors[`daily_summaries_${audience}`] = {
+          message: error.message,
+          hint: error.hint,
+          code: error.code,
+        };
       }
     }
 
@@ -260,11 +280,15 @@ export async function POST(request: NextRequest) {
       status: "ok",
       alerts_count: alerts.length,
       generated_for: AUDIENCES,
+      errors: Object.keys(errors).length > 0 ? errors : undefined,
     });
   } catch (err: any) {
     console.error("Daily summaries cron error:", err);
     return NextResponse.json(
-      { error: "Internal server error" },
+      {
+        error: "Internal server error",
+        detail: err.message ?? "Unknown error",
+      },
       { status: 500 },
     );
   }
