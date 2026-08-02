@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { supabaseAdmin } from "@/lib/supabase/admin";
 import { getGraniteSummary } from "@/lib/ai/granite-client";
 import { buildPrompt } from "@/lib/ai/prompts";
 import { getCachedSummary, setCachedSummary } from "@/lib/spacewx/cache";
@@ -82,7 +83,20 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check in‑memory cache first
+    // 1. Try to serve a precomputed daily summary (no token cost)
+    const today = new Date().toISOString().slice(0, 10);
+    const { data: precomputed, error: fetchError } = await supabaseAdmin
+      .from("daily_summaries")
+      .select("summary")
+      .eq("date", today)
+      .eq("audience", audience)
+      .maybeSingle();
+
+    if (!fetchError && precomputed?.summary) {
+      return NextResponse.json({ summary: precomputed.summary });
+    }
+
+    // 2. Check in‑memory cache second
     const cached = getCachedSummary(data, audience);
     if (cached) {
       return NextResponse.json({ summary: cached });
@@ -90,7 +104,7 @@ export async function POST(request: NextRequest) {
 
     let summary: string;
 
-    // Try Granite, fall back to deterministic summary
+    // 3. Try Granite, fall back to deterministic summary
     try {
       const prompt = buildPrompt(data, audience);
       summary = await getGraniteSummary(prompt);
@@ -99,7 +113,7 @@ export async function POST(request: NextRequest) {
       summary = generateFallbackSummary(data, audience);
     }
 
-    // Cache the result
+    // Cache the result (optional, only used for in-memory dedup within same session)
     setCachedSummary(data, audience, summary);
 
     return NextResponse.json({ summary });

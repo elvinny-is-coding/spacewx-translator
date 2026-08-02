@@ -16,6 +16,11 @@ jobs:
           curl -X POST https://spacewx-translator.vercel.app/api/cron/snapshot \
             -H "x-cron-secret: ${{ secrets.CRON_SECRET }}" \
             -H "Content-Type: application/json" \
-            --silent --show-error --output response.txt --write-out "%{http_code}"
-          echo "HTTP status: $?"
-          cat response.txt
+            --fail --silent --show-error
+
+      - name: Trigger daily summaries endpoint
+        run: |
+          curl -X POST https://spacewx-translator.vercel.app/api/cron/daily-summaries \
+            -H "x-cron-secret: ${{ secrets.CRON_SECRET }}" \
+            -H "Content-Type: application/json" \
+            --fail --silent --show-error
