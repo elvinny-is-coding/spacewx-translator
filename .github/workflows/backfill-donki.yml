@@ -1,0 +1,28 @@
+# .github/workflows/backfill-donki.yml
+name: Backfill DONKI Events
+
+on:
+  workflow_dispatch:
+
+jobs:
+  backfill:
+    runs-on: ubuntu-latest
+    env:
+      NASA_API_KEY: ${{ secrets.NASA_API_KEY }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      NEXT_PUBLIC_SUPABASE_URL: https://xpohiotpklxregxqduxh.supabase.co
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run backfill script
+        run: npx tsx scripts/backfill-donki.ts

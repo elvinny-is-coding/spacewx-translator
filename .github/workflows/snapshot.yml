@@ -24,3 +24,10 @@ jobs:
             -H "x-cron-secret: ${{ secrets.CRON_SECRET }}" \
             -H "Content-Type: application/json" \
             --fail --silent --show-error
+
+      - name: Sync DONKI events
+        run: |
+          curl -X POST https://spacewx-translator.vercel.app/api/cron/sync-donki \
+            -H "x-cron-secret: ${{ secrets.CRON_SECRET }}" \
+            -H "Content-Type: application/json" \
+            --fail --silent --show-error
