@@ -1,4 +1,6 @@
 import StatusBar from "@/components/status-bar";
+import HeroBriefing from "@/components/hero-briefing";
+import DataExplorer from "@/components/data-explorer";
 import AuroraGauge from "@/components/aurora-gauge";
 import ClientMapSection from "@/components/client-map-section";
 import DashboardClient from "@/components/dashboard-client";
@@ -39,7 +41,6 @@ async function getSpaceWeather(): Promise<SpaceWeatherData> {
     return null;
   };
 
-  // Fetch live data (except alerts — those come from cache)
   const results = await Promise.allSettled([
     fetchKpIndex(),
     fetchKpForecast(),
@@ -58,7 +59,6 @@ async function getSpaceWeather(): Promise<SpaceWeatherData> {
   const rawFlares = getValue(results[5], "DONKI flares");
   const rawCMEs = getValue(results[6], "DONKI CMEs");
 
-  // Fetch alerts from Supabase cache (fallback to empty)
   let alerts: SpaceWeatherData["alerts"] = [];
   try {
     const { data: cachedAlerts, error } = await supabaseAdmin
@@ -109,35 +109,39 @@ export default async function HomePage() {
         kp={data.kp}
       />
 
-      <section className="space-y-2 text-center">
-        <h2 className="font-display text-2xl text-starlight">
-          Current Space Weather
-        </h2>
-        <p className="text-sm text-faint-star">
-          The Kp index shows how disturbed Earth’s magnetic field is right now.
-          Higher values mean brighter aurora and possible effects on satellites,
-          power grids, and radio signals.
-        </p>
-      </section>
+      <HeroBriefing data={data} />
 
-      <section className="flex justify-center">
-        <AuroraGauge kp={data.kp} />
-      </section>
-
-      <section className="space-y-4">
-        <div className="space-y-2">
+      <DataExplorer>
+        <section className="space-y-2 text-center">
           <h2 className="font-display text-2xl text-starlight">
-            Where Can You See the Aurora?
+            Current Space Weather
           </h2>
           <p className="text-sm text-faint-star">
-            Tap anywhere on the map or use your location to see if the aurora
-            might be visible near you right now.
+            The Kp index shows how disturbed Earth’s magnetic field is right
+            now. Higher values mean brighter aurora and possible effects on
+            satellites, power grids, and radio signals.
           </p>
-        </div>
-        <ClientMapSection kpForecast={data.kpForecast} />
-      </section>
+        </section>
 
-      <DashboardClient data={data} />
+        <section className="flex justify-center">
+          <AuroraGauge kp={data.kp} />
+        </section>
+
+        <section className="space-y-4">
+          <div className="space-y-2">
+            <h2 className="font-display text-2xl text-starlight">
+              Where Can You See the Aurora?
+            </h2>
+            <p className="text-sm text-faint-star">
+              Tap anywhere on the map or use your location to see if the aurora
+              might be visible near you right now.
+            </p>
+          </div>
+          <ClientMapSection kpForecast={data.kpForecast} />
+        </section>
+
+        <DashboardClient data={data} />
+      </DataExplorer>
     </main>
   );
 }

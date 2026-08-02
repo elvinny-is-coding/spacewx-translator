@@ -12,8 +12,10 @@ import {
   AlertTriangle,
   Activity,
   TrendingUp,
+  ChevronRight,
 } from "lucide-react";
 import type { TimelineEvent } from "@/types/timeline";
+import EventTimelineModal from "@/components/event-timeline-modal";
 
 type DateRange = "24h" | "7d" | "30d" | "custom";
 
@@ -86,6 +88,7 @@ export default function EventTimeline() {
   const [events, setEvents] = useState<TimelineEvent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [modalOpen, setModalOpen] = useState(false);
 
   const fetchEvents = useCallback(async () => {
     setIsLoading(true);
@@ -111,174 +114,198 @@ export default function EventTimeline() {
   }, [fetchEvents]);
 
   return (
-    <Card className="border-none bg-deep-indigo">
-      <CardContent className="p-6 space-y-6">
-        <div>
-          <h3 className="font-display text-lg text-starlight">
-            EVENT TIMELINE
-          </h3>
-          <p className="text-sm text-faint-star">
-            A chronological view of solar flares, CMEs, geomagnetic storms,
-            radiation storms, and Kp spikes — across the time range you choose.
-          </p>
-        </div>
-
-        {/* Range selector */}
-        <div
-          className="flex flex-wrap items-center gap-2"
-          role="group"
-          aria-label="Date range selector"
-        >
-          {(["24h", "7d", "30d", "custom"] as DateRange[]).map((r) => (
-            <Button
-              key={r}
-              variant={range === r ? "default" : "outline"}
-              size="sm"
-              onClick={() => setRange(r)}
-              className={
-                range === r
-                  ? "bg-aurora-green text-void-navy hover:bg-aurora-green/90"
-                  : "border-deep-indigo text-faint-star hover:bg-deep-indigo/50 hover:text-starlight"
-              }
-              aria-pressed={range === r}
-            >
-              {r === "24h"
-                ? "24 Hours"
-                : r === "7d"
-                  ? "7 Days"
-                  : r === "30d"
-                    ? "30 Days"
-                    : "Custom"}
-            </Button>
-          ))}
-        </div>
-
-        {/* Custom date inputs */}
-        {range === "custom" && (
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
-              <Label
-                htmlFor="event-from-date"
-                className="text-xs text-faint-star"
-              >
-                From
-              </Label>
-              <Input
-                id="event-from-date"
-                type="date"
-                value={customFrom}
-                onChange={(e) => setCustomFrom(e.target.value)}
-                className="bg-void-navy border-void-navy text-starlight placeholder:text-faint-star focus:border-aurora-green w-40"
-              />
-            </div>
-            <div className="flex items-center gap-2">
-              <Label
-                htmlFor="event-to-date"
-                className="text-xs text-faint-star"
-              >
-                To
-              </Label>
-              <Input
-                id="event-to-date"
-                type="date"
-                value={customTo}
-                onChange={(e) => setCustomTo(e.target.value)}
-                className="bg-void-navy border-void-navy text-starlight placeholder:text-faint-star focus:border-aurora-green w-40"
-              />
-            </div>
+    <>
+      <Card className="border-none bg-deep-indigo">
+        <CardContent className="p-6 space-y-6">
+          <div>
+            <h3 className="font-display text-lg text-starlight">
+              EVENT TIMELINE
+            </h3>
+            <p className="text-sm text-faint-star">
+              A chronological view of solar flares, CMEs, geomagnetic storms,
+              radiation storms, and Kp spikes — across the time range you
+              choose.
+            </p>
           </div>
-        )}
 
-        {/* Loading */}
-        {isLoading && (
-          <div className="space-y-4">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="flex items-start gap-4">
-                <Skeleton className="h-8 w-8 rounded-full bg-void-navy" />
-                <div className="space-y-2 flex-1">
-                  <Skeleton className="h-4 w-1/3 bg-void-navy" />
-                  <Skeleton className="h-4 w-2/3 bg-void-navy" />
-                </div>
-              </div>
+          {/* Range selector */}
+          <div
+            className="flex flex-wrap items-center gap-2"
+            role="group"
+            aria-label="Date range selector"
+          >
+            {(["24h", "7d", "30d", "custom"] as DateRange[]).map((r) => (
+              <Button
+                key={r}
+                variant={range === r ? "default" : "outline"}
+                size="sm"
+                onClick={() => setRange(r)}
+                className={
+                  range === r
+                    ? "bg-aurora-green text-void-navy hover:bg-aurora-green/90"
+                    : "border-deep-indigo text-faint-star hover:bg-deep-indigo/50 hover:text-starlight"
+                }
+                aria-pressed={range === r}
+              >
+                {r === "24h"
+                  ? "24 Hours"
+                  : r === "7d"
+                    ? "7 Days"
+                    : r === "30d"
+                      ? "30 Days"
+                      : "Custom"}
+              </Button>
             ))}
           </div>
-        )}
 
-        {/* Error */}
-        {!isLoading && error && (
-          <div className="text-center text-sm text-solar-amber py-8">
-            {error}
-            <Button
-              variant="link"
-              size="sm"
-              onClick={fetchEvents}
-              className="ml-2 text-aurora-green"
-            >
-              Retry
-            </Button>
-          </div>
-        )}
-
-        {/* Empty */}
-        {!isLoading && !error && events.length === 0 && (
-          <div className="text-center text-sm text-faint-star py-8">
-            No events found in this time range.
-          </div>
-        )}
-
-        {/* Timeline */}
-        {!isLoading && !error && events.length > 0 && (
-          <div className="relative pl-6 border-l-2 border-deep-indigo space-y-6">
-            {events.map((event, idx) => (
-              <div key={`${event.id}-${idx}`} className="relative">
-                {/* Dot on the timeline */}
-                <div
-                  className="absolute -left-[1.65rem] top-1 w-3 h-3 rounded-full border-2 border-deep-indigo"
-                  style={{ backgroundColor: `var(--color-${event.color})` }}
+          {/* Custom date inputs */}
+          {range === "custom" && (
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <Label
+                  htmlFor="event-from-date"
+                  className="text-xs text-faint-star"
+                >
+                  From
+                </Label>
+                <Input
+                  id="event-from-date"
+                  type="date"
+                  value={customFrom}
+                  onChange={(e) => setCustomFrom(e.target.value)}
+                  className="bg-void-navy border-void-navy text-starlight placeholder:text-faint-star focus:border-aurora-green w-40"
                 />
-
-                {/* Time */}
-                <p className="text-xs text-faint-star mb-1">
-                  {formatRelativeTime(event.time)}
-                </p>
-
-                {/* Card */}
-                <Card className="border-none bg-void-navy/60 hover:bg-void-navy transition-colors">
-                  <CardContent className="p-4 flex items-start gap-3">
-                    <div className="mt-0.5 shrink-0">
-                      {EVENT_ICONS[event.type]}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span
-                          className="text-xs font-semibold uppercase tracking-wider"
-                          style={{ color: `var(--color-${event.color})` }}
-                        >
-                          {EVENT_LABELS[event.type]}
-                        </span>
-                        <span className="text-xs text-faint-star">
-                          {new Date(event.time).toLocaleTimeString("en-US", {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })}
-                        </span>
-                      </div>
-                      <p className="text-sm font-medium text-starlight">
-                        {event.label}
-                      </p>
-                      {event.description && (
-                        <p className="text-xs text-faint-star mt-1 leading-relaxed">
-                          {event.description}
-                        </p>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
               </div>
-            ))}
-          </div>
-        )}
-      </CardContent>
-    </Card>
+              <div className="flex items-center gap-2">
+                <Label
+                  htmlFor="event-to-date"
+                  className="text-xs text-faint-star"
+                >
+                  To
+                </Label>
+                <Input
+                  id="event-to-date"
+                  type="date"
+                  value={customTo}
+                  onChange={(e) => setCustomTo(e.target.value)}
+                  className="bg-void-navy border-void-navy text-starlight placeholder:text-faint-star focus:border-aurora-green w-40"
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Loading */}
+          {isLoading && (
+            <div className="space-y-4">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="flex items-start gap-4">
+                  <Skeleton className="h-8 w-8 rounded-full bg-void-navy" />
+                  <div className="space-y-2 flex-1">
+                    <Skeleton className="h-4 w-1/3 bg-void-navy" />
+                    <Skeleton className="h-4 w-2/3 bg-void-navy" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Error */}
+          {!isLoading && error && (
+            <div className="text-center text-sm text-solar-amber py-8">
+              {error}
+              <Button
+                variant="link"
+                size="sm"
+                onClick={fetchEvents}
+                className="ml-2 text-aurora-green"
+              >
+                Retry
+              </Button>
+            </div>
+          )}
+
+          {/* Empty */}
+          {!isLoading && !error && events.length === 0 && (
+            <div className="text-center text-sm text-faint-star py-8">
+              No events found in this time range.
+            </div>
+          )}
+
+          {/* Timeline preview */}
+          {!isLoading && !error && events.length > 0 && (
+            <>
+              <div className="relative pl-6 border-l-2 border-deep-indigo space-y-6">
+                {events.slice(0, 5).map((event, idx) => (
+                  <div key={`${event.id}-${idx}`} className="relative">
+                    <div
+                      className="absolute -left-[1.65rem] top-1 w-3 h-3 rounded-full border-2 border-deep-indigo"
+                      style={{ backgroundColor: `var(--color-${event.color})` }}
+                    />
+                    <p className="text-xs text-faint-star mb-1">
+                      {formatRelativeTime(event.time)}
+                    </p>
+                    <Card className="border-none bg-void-navy/60 hover:bg-void-navy transition-colors">
+                      <CardContent className="p-4 flex items-start gap-3">
+                        <div className="mt-0.5 shrink-0">
+                          {EVENT_ICONS[event.type]}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span
+                              className="text-xs font-semibold uppercase tracking-wider"
+                              style={{ color: `var(--color-${event.color})` }}
+                            >
+                              {EVENT_LABELS[event.type]}
+                            </span>
+                            <span className="text-xs text-faint-star">
+                              {new Date(event.time).toLocaleTimeString(
+                                "en-US",
+                                {
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                },
+                              )}
+                            </span>
+                          </div>
+                          <p className="text-sm font-medium text-starlight">
+                            {event.label}
+                          </p>
+                          {event.description && (
+                            <p className="text-xs text-faint-star mt-1 leading-relaxed">
+                              {event.description}
+                            </p>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+                ))}
+              </div>
+
+              {/* View all button */}
+              {events.length > 5 && (
+                <div className="flex justify-center pt-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setModalOpen(true)}
+                    className="border-deep-indigo text-faint-star hover:bg-deep-indigo/50 hover:text-starlight"
+                  >
+                    View all {events.length} events
+                    <ChevronRight size={14} className="ml-1" />
+                  </Button>
+                </div>
+              )}
+            </>
+          )}
+        </CardContent>
+      </Card>
+
+      <EventTimelineModal
+        events={events}
+        open={modalOpen}
+        onOpenChange={setModalOpen}
+      />
+    </>
   );
 }
