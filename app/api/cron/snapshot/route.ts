@@ -16,7 +16,6 @@ import {
   normalizeNoaaScaleG,
 } from "@/lib/spacewx/normalizers";
 
-// Only allow POST — return 405 for other methods
 export async function GET() {
   return NextResponse.json({ error: "Method not allowed" }, { status: 405 });
 }
@@ -30,7 +29,6 @@ export async function DELETE() {
 }
 
 export async function POST(request: NextRequest) {
-  // Verify secret
   const secret = request.headers.get("x-cron-secret");
   if (secret !== process.env.CRON_SECRET) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -74,7 +72,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { error } = await supabaseAdmin
+    const { error: insertError } = await supabaseAdmin
       .from("space_weather_snapshots")
       .insert({
         kp,
@@ -88,10 +86,15 @@ export async function POST(request: NextRequest) {
         },
       });
 
-    if (error) {
-      console.error("Snapshot insert error:", error);
+    if (insertError) {
+      console.error("Snapshot insert error:", insertError);
       return NextResponse.json(
-        { error: "Failed to store snapshot" },
+        {
+          error: "Failed to store snapshot",
+          detail: insertError.message,
+          hint: insertError.hint,
+          code: insertError.code,
+        },
         { status: 500 },
       );
     }
@@ -100,7 +103,10 @@ export async function POST(request: NextRequest) {
   } catch (err: any) {
     console.error("Cron snapshot error:", err);
     return NextResponse.json(
-      { error: "Internal server error" },
+      {
+        error: "Internal server error",
+        detail: err.message ?? "Unknown error",
+      },
       { status: 500 },
     );
   }
