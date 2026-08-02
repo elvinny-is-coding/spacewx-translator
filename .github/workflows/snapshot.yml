@@ -11,12 +11,15 @@ jobs:
   snapshot:
     runs-on: ubuntu-latest
     steps:
-      - name: Trigger snapshot endpoint
+      - name: Trigger snapshot endpoint (debug)
         run: |
-          curl -X POST https://spacewx-translator.vercel.app/api/cron/snapshot \
+          HTTP_CODE=$(curl -X POST https://spacewx-translator.vercel.app/api/cron/snapshot \
             -H "x-cron-secret: ${{ secrets.CRON_SECRET }}" \
             -H "Content-Type: application/json" \
-            --fail --silent --show-error
+            --silent --show-error --output response.txt --write-out "%{http_code}")
+          echo "HTTP status: $HTTP_CODE"
+          cat response.txt
+          if [ "$HTTP_CODE" -ge 400 ]; then exit 1; fi
 
       - name: Trigger daily summaries endpoint
         run: |
