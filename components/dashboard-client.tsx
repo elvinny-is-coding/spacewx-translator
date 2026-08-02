@@ -5,6 +5,7 @@ import AudienceToggle from "@/components/audience-toggle";
 import AiSummaryCard from "@/components/ai-summary-card";
 import TrendChart from "@/components/trend-chart";
 import HistoricalChart from "@/components/historical-chart";
+import EventTimeline from "@/components/event-timeline";
 import ActiveAlerts from "@/components/active-alerts";
 import SourceWarningBanner from "@/components/source-warning-banner";
 import ThresholdAlertBanner from "@/components/threshold-alert-banner";
@@ -49,6 +50,8 @@ export default function DashboardClient({ data }: DashboardClientProps) {
       <TrendChart forecast={data.kpForecast} />
 
       <HistoricalChart />
+
+      <EventTimeline />
 
       <ActiveAlerts alerts={data.alerts} />
     </div>
