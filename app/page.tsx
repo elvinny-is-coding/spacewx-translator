@@ -3,13 +3,13 @@ import AuroraGauge from "@/components/aurora-gauge";
 import ClientMapSection from "@/components/client-map-section";
 import DashboardClient from "@/components/dashboard-client";
 import type { SpaceWeatherData } from "@/types/spacewx";
+import { supabaseAdmin } from "@/lib/supabase/admin";
 
 import {
   fetchKpIndex,
   fetchKpForecast,
   fetchSolarWindPlasma,
   fetchSolarWindMag,
-  fetchAlerts,
   fetchNoaaScales,
   fetchDonkiFlares,
   fetchDonkiCMEs,
@@ -39,12 +39,12 @@ async function getSpaceWeather(): Promise<SpaceWeatherData> {
     return null;
   };
 
+  // Fetch live data (except alerts — those come from cache)
   const results = await Promise.allSettled([
     fetchKpIndex(),
     fetchKpForecast(),
     fetchSolarWindPlasma(),
     fetchSolarWindMag(),
-    fetchAlerts(),
     fetchNoaaScales(),
     fetchDonkiFlares(),
     fetchDonkiCMEs(),
@@ -54,10 +54,25 @@ async function getSpaceWeather(): Promise<SpaceWeatherData> {
   const rawForecast = getValue(results[1], "NOAA Kp forecast");
   const rawPlasma = getValue(results[2], "Solar wind plasma");
   const rawMag = getValue(results[3], "Solar wind magnetic field");
-  const rawAlerts = getValue(results[4], "NOAA alerts");
-  const rawScales = getValue(results[5], "NOAA scales");
-  const rawFlares = getValue(results[6], "DONKI flares");
-  const rawCMEs = getValue(results[7], "DONKI CMEs");
+  const rawScales = getValue(results[4], "NOAA scales");
+  const rawFlares = getValue(results[5], "DONKI flares");
+  const rawCMEs = getValue(results[6], "DONKI CMEs");
+
+  // Fetch alerts from Supabase cache (fallback to empty)
+  let alerts: SpaceWeatherData["alerts"] = [];
+  try {
+    const { data: cachedAlerts, error } = await supabaseAdmin
+      .from("latest_alerts")
+      .select("alerts")
+      .eq("id", 1)
+      .single();
+
+    if (!error && cachedAlerts?.alerts) {
+      alerts = cachedAlerts.alerts;
+    }
+  } catch {
+    warnings.push("NOAA alerts cache unavailable");
+  }
 
   let currentKp = rawKp !== null ? normalizeKp(rawKp) : null;
   const forecast =
@@ -74,7 +89,7 @@ async function getSpaceWeather(): Promise<SpaceWeatherData> {
     kp: currentKp,
     kpForecast: forecast,
     solarWind: normalizeSolarWind(rawPlasma, rawMag),
-    alerts: rawAlerts !== null ? normalizeAlerts(rawAlerts) : [],
+    alerts,
     flares: rawFlares !== null ? normalizeFlares(rawFlares) : [],
     cmes: rawCMEs !== null ? normalizeCMEs(rawCMEs) : [],
     noaaScaleG: rawScales !== null ? normalizeNoaaScaleG(rawScales) : null,

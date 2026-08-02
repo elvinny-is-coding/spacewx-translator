@@ -72,3 +72,10 @@ export async function fetchDonkiCMEs(): Promise<any[] | null> {
   const url = `${NASA_DONKI_BASE}/CME?api_key=${NASA_API_KEY}`;
   return safeFetchJSON(url, 5000);
 }
+
+const NOAA_OVATION =
+  "https://services.swpc.noaa.gov/json/ovation_aurora_latest.json";
+
+export async function fetchOvation(): Promise<any> {
+  return fetchJSON(NOAA_OVATION, 10000); // OVATION can be large, allow 10s
+}

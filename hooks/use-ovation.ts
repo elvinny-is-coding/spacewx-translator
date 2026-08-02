@@ -2,13 +2,9 @@
 
 import { useState, useEffect, useRef } from "react";
 import type { OvationGrid } from "@/types/ovation";
-import { reshapeOvationGrid } from "@/lib/aurora-utils";
 
-const OVATION_URL =
-  "https://services.swpc.noaa.gov/json/ovation_aurora_latest.json";
 const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
-// In‑memory cache shared across all instances on the same page
 let cachedGrid: OvationGrid | null = null;
 let lastFetchTime = 0;
 
@@ -25,7 +21,6 @@ export function useOvation(): UseOvationReturn {
   const abortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
-    // If cache is still valid, use it
     if (cachedGrid && Date.now() - lastFetchTime < CACHE_TTL_MS) {
       setGrid(cachedGrid);
       setIsLoading(false);
@@ -40,7 +35,7 @@ export function useOvation(): UseOvationReturn {
       setError(null);
 
       try {
-        const res = await fetch(OVATION_URL, {
+        const res = await fetch("/api/ovation", {
           signal: abortRef.current?.signal,
         });
 
@@ -50,16 +45,21 @@ export function useOvation(): UseOvationReturn {
 
         const json = await res.json();
 
-        if (!json.coordinates || !Array.isArray(json.coordinates)) {
+        if (!json.grid || !Array.isArray(json.grid)) {
           throw new Error("Invalid OVATION data format");
         }
 
-        const reshaped = reshapeOvationGrid(json);
+        const ovationGrid: OvationGrid = {
+          cols: 360,
+          rows: 181,
+          grid: json.grid,
+          forecastTime: json.forecastTime ?? "",
+        };
 
         if (!cancelled) {
-          cachedGrid = reshaped;
+          cachedGrid = ovationGrid;
           lastFetchTime = Date.now();
-          setGrid(reshaped);
+          setGrid(ovationGrid);
           setIsLoading(false);
         }
       } catch (err: unknown) {

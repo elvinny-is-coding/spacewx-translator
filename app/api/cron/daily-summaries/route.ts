@@ -1,28 +1,116 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
-import { fetchAlerts } from "@/lib/spacewx/fetchers";
-import { normalizeAlerts } from "@/lib/spacewx/normalizers";
-import { buildAlertTriagePrompt } from "@/lib/ai/prompts";
+import {
+  fetchKpIndex,
+  fetchSolarWindPlasma,
+  fetchSolarWindMag,
+  fetchAlerts,
+  fetchNoaaScales,
+  fetchDonkiFlares,
+  fetchDonkiCMEs,
+  fetchOvation,
+} from "@/lib/spacewx/fetchers";
+import {
+  normalizeKp,
+  normalizeSolarWind,
+  normalizeAlerts,
+  normalizeNoaaScaleG,
+  normalizeFlares,
+  normalizeCMEs,
+} from "@/lib/spacewx/normalizers";
+import { buildDailyBriefingPrompt } from "@/lib/ai/prompts";
 import { getGraniteSummary } from "@/lib/ai/granite-client";
+import { reshapeOvationGrid } from "@/lib/aurora-utils";
 import type { Audience } from "@/types/audience";
+import type { NotableEvent, DailyBriefingInput } from "@/lib/ai/prompts";
 
 const AUDIENCES: Audience[] = ["general", "educator", "technical"];
 
-function deterministicAlertSummary(
+// ── Helpers (unchanged) ──
+
+function parseFlareClass(
+  classType: string,
+): { letter: string; number: number } | null {
+  const match = classType.match(/^([CXM])(\d+\.?\d*)$/i);
+  if (!match) return null;
+  return { letter: match[1].toUpperCase(), number: parseFloat(match[2]) };
+}
+
+function isNotableFlare(classType: string): boolean {
+  const parsed = parseFlareClass(classType);
+  if (!parsed) return false;
+  return parsed.letter === "X" || (parsed.letter === "M" && parsed.number >= 5);
+}
+
+function isNotableCME(speed: number | null, note: string | null): boolean {
+  if (speed !== null && speed > 800) return true;
+  if (note && note.toLowerCase().includes("earth")) return true;
+  return false;
+}
+
+function extractScales(scales: any): {
+  g: number | null;
+  r: number | null;
+  s: number | null;
+} {
+  const result = {
+    g: null as number | null,
+    r: null as number | null,
+    s: null as number | null,
+  };
+  if (scales && typeof scales === "object") {
+    if (scales.G?.Scale != null) result.g = parseInt(scales.G.Scale, 10);
+    if (scales.R?.Scale != null) result.r = parseInt(scales.R.Scale, 10);
+    if (scales.S?.Scale != null) result.s = parseInt(scales.S.Scale, 10);
+  }
+  return result;
+}
+
+function buildAlertSummaryText(
+  scales: { g: number | null; r: number | null; s: number | null },
   alerts: ReturnType<typeof normalizeAlerts>,
 ): string {
-  if (alerts.length === 0) return "No active space weather alerts.";
+  const parts: string[] = [];
+  if (scales.g !== null) parts.push(`G-scale: G${scales.g}`);
+  if (scales.r !== null) parts.push(`R-scale: R${scales.r}`);
+  if (scales.s !== null) parts.push(`S-scale: S${scales.s}`);
 
-  const latest = alerts[0];
-  const types = [...new Set(alerts.map((a) => a.message.slice(0, 30)))].join(
-    ", ",
-  );
-  return (
-    `${alerts.length} active NOAA alert${alerts.length > 1 ? "s" : ""}. ` +
-    `The most recent: "${latest.message.slice(0, 120)}". ` +
-    `Alert types include: ${types}.`
-  );
+  if (alerts.length > 0) {
+    const snippets = alerts.slice(0, 3).map((a) => a.message.slice(0, 120));
+    parts.push(`Sample alerts: ${snippets.join("; ")}`);
+  } else {
+    parts.push("No active alerts");
+  }
+  return parts.join(". ");
 }
+
+function deterministicDailyBriefing(input: DailyBriefingInput): string {
+  const lines: string[] = [];
+  if (input.kp !== null) lines.push(`Kp ${input.kp.toFixed(1)}`);
+  if (input.gScale !== null) lines.push(`G${input.gScale}`);
+  if (input.rScale !== null) lines.push(`R${input.rScale}`);
+  if (input.sScale !== null) lines.push(`S${input.sScale}`);
+  if (input.solarWindSpeed !== null)
+    lines.push(
+      `Solar wind: ${input.solarWindSpeed} km/s, Bz ${input.solarWindBz ?? "?"} nT`,
+    );
+  if (input.notableFlares.length > 0) {
+    lines.push(
+      `Notable flares: ${input.notableFlares.map((f) => f.label).join(", ")}`,
+    );
+  } else if (input.backgroundFlareCount > 0) {
+    lines.push(`Flares: ${input.backgroundFlareCount} minor events`);
+  }
+  if (input.notableCMEs.length > 0) {
+    lines.push(
+      `Notable CMEs: ${input.notableCMEs.map((c) => c.label).join(", ")}`,
+    );
+  }
+  if (input.alertSummary) lines.push(input.alertSummary);
+  return lines.join("\n");
+}
+
+// ── Route ──
 
 export async function POST(request: NextRequest) {
   const secret = request.headers.get("x-cron-secret");
@@ -31,40 +119,128 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    // Fetch current alerts
-    let rawAlerts: unknown;
-    try {
-      rawAlerts = await fetchAlerts();
-    } catch {
-      // If even alerts are down, store empty state
-      rawAlerts = [];
+    // Fetch all sources, including OVATION
+    const [kpR, plasmaR, magR, alertsR, scalesR, flaresR, cmesR, ovationR] =
+      await Promise.allSettled([
+        fetchKpIndex(),
+        fetchSolarWindPlasma(),
+        fetchSolarWindMag(),
+        fetchAlerts(),
+        fetchNoaaScales(),
+        fetchDonkiFlares(),
+        fetchDonkiCMEs(),
+        fetchOvation(),
+      ]);
+
+    const kp = kpR.status === "fulfilled" ? normalizeKp(kpR.value) : null;
+    const solarWind =
+      plasmaR.status === "fulfilled" && magR.status === "fulfilled"
+        ? normalizeSolarWind(plasmaR.value, magR.value)
+        : null;
+    const alerts =
+      alertsR.status === "fulfilled" ? normalizeAlerts(alertsR.value) : [];
+    const scalesRaw = scalesR.status === "fulfilled" ? scalesR.value : null;
+    const scales = extractScales(scalesRaw);
+
+    // Flares – filter notable and count background
+    let notableFlares: NotableEvent[] = [];
+    let backgroundFlareCount = 0;
+    if (flaresR.status === "fulfilled") {
+      const allFlares = normalizeFlares(flaresR.value);
+      for (const f of allFlares) {
+        if (isNotableFlare(f.classType)) {
+          notableFlares.push({ label: f.classType, time: f.beginTime });
+        } else {
+          backgroundFlareCount++;
+        }
+      }
     }
 
-    const alerts = normalizeAlerts(rawAlerts);
-    const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+    // CMEs – filter notable and count background
+    let notableCMEs: NotableEvent[] = [];
+    let backgroundCMECount = 0;
+    if (cmesR.status === "fulfilled") {
+      const allCMEs = normalizeCMEs(cmesR.value);
+      for (const c of allCMEs) {
+        if (isNotableCME(c.speed, c.note)) {
+          notableCMEs.push({
+            label:
+              `CME ${c.speed ? `${c.speed} km/s` : ""} ${c.note ?? ""}`.trim(),
+            time: c.startTime,
+          });
+        } else {
+          backgroundCMECount++;
+        }
+      }
+    }
+
+    const alertSummary = buildAlertSummaryText(scales, alerts);
+
+    // ── Cache alerts into latest_alerts (singleton row) ──
+    if (alertsR.status === "fulfilled") {
+      const { error: alertCacheErr } = await supabaseAdmin
+        .from("latest_alerts")
+        .upsert(
+          { id: 1, alerts: alerts, updated_at: new Date().toISOString() },
+          { onConflict: "id" },
+        );
+      if (alertCacheErr)
+        console.error("Failed to cache alerts:", alertCacheErr);
+    }
+
+    // ── Cache OVATION data ──
+    if (ovationR.status === "fulfilled") {
+      try {
+        const grid = reshapeOvationGrid(ovationR.value);
+        const { error: ovationCacheErr } = await supabaseAdmin
+          .from("latest_ovation")
+          .upsert(
+            {
+              id: 1,
+              grid: grid.grid,
+              forecast_time: grid.forecastTime,
+              updated_at: new Date().toISOString(),
+            },
+            { onConflict: "id" },
+          );
+        if (ovationCacheErr)
+          console.error("Failed to cache OVATION:", ovationCacheErr);
+      } catch (err) {
+        console.warn("OVATION reshape/insert failed:", err);
+      }
+    }
+
+    // ── Generate daily summaries ──
+    const briefingInput: DailyBriefingInput = {
+      kp,
+      gScale: scales.g,
+      rScale: scales.r,
+      sScale: scales.s,
+      solarWindSpeed: solarWind?.speed ?? null,
+      solarWindBz: solarWind?.bz ?? null,
+      notableFlares,
+      backgroundFlareCount,
+      notableCMEs,
+      backgroundCMECount,
+      alertSummary,
+    };
+
+    const today = new Date().toISOString().slice(0, 10);
 
     for (const audience of AUDIENCES) {
       let summary: string;
+      const prompt = buildDailyBriefingPrompt(audience, briefingInput);
 
-      if (alerts.length === 0) {
-        summary = "No active space weather alerts at this time.";
-      } else {
-        const prompt = buildAlertTriagePrompt(
-          audience,
-          alerts.map((a) => a.message),
+      try {
+        summary = await getGraniteSummary(prompt);
+      } catch (err) {
+        console.warn(
+          `Granite failed for ${audience}, using deterministic fallback.`,
+          err,
         );
-        try {
-          summary = await getGraniteSummary(prompt);
-        } catch (err) {
-          console.warn(
-            `Granite failed for ${audience}, using deterministic fallback.`,
-            err,
-          );
-          summary = deterministicAlertSummary(alerts);
-        }
+        summary = deterministicDailyBriefing(briefingInput);
       }
 
-      // Upsert into daily_summaries
       const { error } = await supabaseAdmin.from("daily_summaries").upsert(
         {
           date: today,
