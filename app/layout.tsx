@@ -8,7 +8,6 @@ import {
 import { Toaster } from "sonner";
 import "./globals.css";
 import { cn } from "@/lib/utils";
-import Chatbot from "@/components/chatbot";
 
 const geist = Geist({ subsets: ["latin"], variable: "--font-sans" });
 
@@ -57,7 +56,6 @@ export default function RootLayout({
     >
       <body className="min-h-screen bg-void-navy font-body text-starlight antialiased">
         {children}
-        <Chatbot />
         <Toaster
           position="bottom-right"
           toastOptions={{
