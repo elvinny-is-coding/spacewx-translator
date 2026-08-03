@@ -47,21 +47,9 @@ export default function AiSummaryCard({ data, audience }: AiSummaryCardProps) {
   const [chatError, setChatError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Track which audience's summary was last seeded
-  const seededAudience = useRef<Audience | null>(null);
-
-  // ── Reset on audience change ─────────────────────────────────
+  // ── Seed or restore once summary is ready ────────────────────
   useEffect(() => {
-    setMessages([]);
-    setChatError(null);
-    seededAudience.current = null;
-    setInput("");
-  }, [audience]);
-
-  // ── Seed or restore once summary is ready for *this* audience ─
-  useEffect(() => {
-    // Only act when the summary is ready and belongs to the current audience
-    if (isLoading || !summary || seededAudience.current === audience) return;
+    if (isLoading || !summary) return;
 
     const saved = sessionStorage.getItem(getStorageKey(audience));
     if (saved) {
@@ -69,7 +57,6 @@ export default function AiSummaryCard({ data, audience }: AiSummaryCardProps) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
           setMessages(parsed);
-          seededAudience.current = audience;
           return;
         }
       } catch {
@@ -79,7 +66,6 @@ export default function AiSummaryCard({ data, audience }: AiSummaryCardProps) {
 
     // No saved history – start fresh with the current summary
     setMessages([{ role: "assistant", content: summary }]);
-    seededAudience.current = audience;
   }, [summary, isLoading, audience]);
 
   // ── Persist messages to sessionStorage ────────────────────────
@@ -97,7 +83,6 @@ export default function AiSummaryCard({ data, audience }: AiSummaryCardProps) {
   // ── Reset chat manually ──────────────────────────────────────
   const resetChat = () => {
     sessionStorage.removeItem(getStorageKey(audience));
-    seededAudience.current = null;
     if (summary) {
       setMessages([{ role: "assistant", content: summary }]);
     } else {

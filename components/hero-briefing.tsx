@@ -30,7 +30,9 @@ export default function HeroBriefing({ data }: HeroBriefingProps) {
       </div>
 
       <div className="mx-auto max-w-2xl">
-        <AiSummaryCard data={data} audience={audience} />
+        {/* The key forces a brand new AiSummaryCard when audience changes,
+            destroying any stale chat state. */}
+        <AiSummaryCard key={audience} data={data} audience={audience} />
       </div>
     </section>
   );
