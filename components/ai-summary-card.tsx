@@ -3,7 +3,14 @@
 import { useState, useRef, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { AlertCircle, RefreshCw, Sparkles, Send, Loader2 } from "lucide-react";
+import {
+  AlertCircle,
+  RefreshCw,
+  Sparkles,
+  Send,
+  Loader2,
+  RotateCcw,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAiSummary } from "@/hooks/use-ai-summary";
@@ -25,10 +32,13 @@ const AUDIENCE_DESCRIPTIONS: Record<Audience, string> = {
     "A precise technical brief for satellite operators, pilots, and radio engineers who need to understand potential impacts on their systems.",
 };
 
+function getStorageKey(audience: Audience) {
+  return `spacewx-chat-${audience}`;
+}
+
 export default function AiSummaryCard({ data, audience }: AiSummaryCardProps) {
   const { summary, isLoading, error, retry } = useAiSummary(data, audience);
 
-  // Chat state
   const [messages, setMessages] = useState<
     { role: "user" | "assistant"; content: string }[]
   >([]);
@@ -36,19 +46,57 @@ export default function AiSummaryCard({ data, audience }: AiSummaryCardProps) {
   const [isChatLoading, setIsChatLoading] = useState(false);
   const [chatError, setChatError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const hasRestoredRef = useRef(false); // avoid overwriting restored history
 
-  // When the daily summary loads (or changes), set it as the initial assistant message.
-  // Only set it if messages array is empty to avoid overwriting an ongoing chat.
+  // Restore saved chat for this audience, or seed with the daily summary
   useEffect(() => {
-    if (summary && messages.length === 0) {
-      setMessages([{ role: "assistant", content: summary }]);
+    if (!summary) {
+      setMessages([]);
+      hasRestoredRef.current = false;
+      return;
     }
-  }, [summary, messages.length]);
+
+    const saved = sessionStorage.getItem(getStorageKey(audience));
+    if (saved && !hasRestoredRef.current) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setMessages(parsed);
+          hasRestoredRef.current = true;
+          return;
+        }
+      } catch {
+        /* ignore corrupt storage */
+      }
+    }
+
+    // No saved history — start fresh with the current summary
+    setMessages([{ role: "assistant", content: summary }]);
+    hasRestoredRef.current = false;
+  }, [summary, audience]);
+
+  // Persist messages to sessionStorage whenever they change
+  useEffect(() => {
+    if (messages.length > 0) {
+      sessionStorage.setItem(getStorageKey(audience), JSON.stringify(messages));
+    }
+  }, [messages, audience]);
 
   // Auto‑scroll to bottom
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  const resetChat = () => {
+    sessionStorage.removeItem(getStorageKey(audience));
+    hasRestoredRef.current = false;
+    if (summary) {
+      setMessages([{ role: "assistant", content: summary }]);
+    } else {
+      setMessages([]);
+    }
+    setChatError(null);
+  };
 
   const handleSend = async () => {
     const question = input.trim();
@@ -57,7 +105,8 @@ export default function AiSummaryCard({ data, audience }: AiSummaryCardProps) {
     setInput("");
     setChatError(null);
     const userMsg = { role: "user" as const, content: question };
-    setMessages((prev) => [...prev, userMsg]);
+    const updated = [...messages, userMsg];
+    setMessages(updated);
     setIsChatLoading(true);
 
     try {
@@ -68,7 +117,7 @@ export default function AiSummaryCard({ data, audience }: AiSummaryCardProps) {
           question,
           data,
           audience,
-          history: messages.slice(-6), // last 6 messages for context
+          history: updated.slice(-7, -1), // last 6 before the latest user message
         }),
       });
 
@@ -94,18 +143,32 @@ export default function AiSummaryCard({ data, audience }: AiSummaryCardProps) {
   return (
     <Card className="border-none bg-deep-indigo shadow-lg">
       <CardContent className="p-6 space-y-3">
-        <div>
-          <h3 className="font-display text-lg text-starlight flex items-center gap-2">
-            <Sparkles size={18} className="text-aurora-green" />
-            Your AI Summary
-          </h3>
-          <p className="text-sm text-faint-star">
-            {AUDIENCE_DESCRIPTIONS[audience]}
-          </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="font-display text-lg text-starlight flex items-center gap-2">
+              <Sparkles size={18} className="text-aurora-green" />
+              Your AI Summary
+            </h3>
+            <p className="text-sm text-faint-star">
+              {AUDIENCE_DESCRIPTIONS[audience]}
+            </p>
+          </div>
+          {/* Reset button – only visible when chat has extra messages */}
+          {messages.length > 1 && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={resetChat}
+              className="text-faint-star hover:text-starlight"
+              title="Reset chat"
+            >
+              <RotateCcw size={16} />
+            </Button>
+          )}
         </div>
 
-        {/* Messages area */}
-        <div className="min-h-[120px] max-h-[400px] overflow-y-auto space-y-3 pr-1">
+        {/* Messages area – fixed max height with internal scroll */}
+        <div className="min-h-[120px] max-h-[500px] overflow-y-auto space-y-3 pr-1">
           {isLoading && (
             <div className="space-y-3">
               <Skeleton className="h-4 w-full bg-void-navy" />
