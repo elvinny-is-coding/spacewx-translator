@@ -4,6 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AlertCircle, RefreshCw, Sparkles } from "lucide-react";
 import { useAiSummary } from "@/hooks/use-ai-summary";
+import MarkdownContent from "@/components/markdown-content";
 import type { SpaceWeatherData } from "@/types/spacewx";
 import type { Audience } from "@/types/audience";
 
@@ -61,9 +62,7 @@ export default function AiSummaryCard({ data, audience }: AiSummaryCardProps) {
           )}
 
           {!isLoading && !error && summary && (
-            <p className="text-base leading-relaxed text-starlight">
-              {summary}
-            </p>
+            <MarkdownContent content={summary} />
           )}
 
           {!isLoading && !error && !summary && (
