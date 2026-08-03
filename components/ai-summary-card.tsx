@@ -47,23 +47,21 @@ export default function AiSummaryCard({ data, audience }: AiSummaryCardProps) {
   const [chatError, setChatError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Track whether we've restored the session for the *current* audience
-  const restoredForAudience = useRef<Audience | null>(null);
+  // Track which audience's summary was last seeded
+  const seededAudience = useRef<Audience | null>(null);
 
   // ── Reset on audience change ─────────────────────────────────
   useEffect(() => {
-    // Clear chat immediately so the previous audience's messages disappear
     setMessages([]);
     setChatError(null);
-    restoredForAudience.current = null;
+    seededAudience.current = null;
     setInput("");
   }, [audience]);
 
-  // ── Seed or restore once summary is ready ────────────────────
+  // ── Seed or restore once summary is ready for *this* audience ─
   useEffect(() => {
-    if (isLoading || !summary) return;
-    // Only seed/restore if we haven't already done so for this audience
-    if (restoredForAudience.current === audience) return;
+    // Only act when the summary is ready and belongs to the current audience
+    if (isLoading || !summary || seededAudience.current === audience) return;
 
     const saved = sessionStorage.getItem(getStorageKey(audience));
     if (saved) {
@@ -71,7 +69,7 @@ export default function AiSummaryCard({ data, audience }: AiSummaryCardProps) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
           setMessages(parsed);
-          restoredForAudience.current = audience;
+          seededAudience.current = audience;
           return;
         }
       } catch {
@@ -81,7 +79,7 @@ export default function AiSummaryCard({ data, audience }: AiSummaryCardProps) {
 
     // No saved history – start fresh with the current summary
     setMessages([{ role: "assistant", content: summary }]);
-    restoredForAudience.current = audience;
+    seededAudience.current = audience;
   }, [summary, isLoading, audience]);
 
   // ── Persist messages to sessionStorage ────────────────────────
@@ -99,7 +97,7 @@ export default function AiSummaryCard({ data, audience }: AiSummaryCardProps) {
   // ── Reset chat manually ──────────────────────────────────────
   const resetChat = () => {
     sessionStorage.removeItem(getStorageKey(audience));
-    restoredForAudience.current = null;
+    seededAudience.current = null;
     if (summary) {
       setMessages([{ role: "assistant", content: summary }]);
     } else {
@@ -128,7 +126,7 @@ export default function AiSummaryCard({ data, audience }: AiSummaryCardProps) {
           question,
           data,
           audience,
-          history: updated.slice(-7, -1), // last 6 before the latest
+          history: updated.slice(-7, -1),
         }),
       });
 
