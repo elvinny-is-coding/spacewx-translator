@@ -46,50 +46,60 @@ export default function AiSummaryCard({ data, audience }: AiSummaryCardProps) {
   const [isChatLoading, setIsChatLoading] = useState(false);
   const [chatError, setChatError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const hasRestoredRef = useRef(false); // avoid overwriting restored history
 
-  // Restore saved chat for this audience, or seed with the daily summary
+  // Track whether we've restored the session for the *current* audience
+  const restoredForAudience = useRef<Audience | null>(null);
+
+  // ── Reset on audience change ─────────────────────────────────
   useEffect(() => {
-    if (!summary) {
-      setMessages([]);
-      hasRestoredRef.current = false;
-      return;
-    }
+    // Clear chat immediately so the previous audience's messages disappear
+    setMessages([]);
+    setChatError(null);
+    restoredForAudience.current = null;
+    setInput("");
+  }, [audience]);
+
+  // ── Seed or restore once summary is ready ────────────────────
+  useEffect(() => {
+    if (isLoading || !summary) return;
+    // Only seed/restore if we haven't already done so for this audience
+    if (restoredForAudience.current === audience) return;
 
     const saved = sessionStorage.getItem(getStorageKey(audience));
-    if (saved && !hasRestoredRef.current) {
+    if (saved) {
       try {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
           setMessages(parsed);
-          hasRestoredRef.current = true;
+          restoredForAudience.current = audience;
           return;
         }
       } catch {
-        /* ignore corrupt storage */
+        /* ignore */
       }
     }
 
-    // No saved history — start fresh with the current summary
+    // No saved history – start fresh with the current summary
     setMessages([{ role: "assistant", content: summary }]);
-    hasRestoredRef.current = false;
-  }, [summary, audience]);
+    restoredForAudience.current = audience;
+  }, [summary, isLoading, audience]);
 
-  // Persist messages to sessionStorage whenever they change
+  // ── Persist messages to sessionStorage ────────────────────────
   useEffect(() => {
     if (messages.length > 0) {
       sessionStorage.setItem(getStorageKey(audience), JSON.stringify(messages));
     }
   }, [messages, audience]);
 
-  // Auto‑scroll to bottom
+  // ── Auto‑scroll to bottom ────────────────────────────────────
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  // ── Reset chat manually ──────────────────────────────────────
   const resetChat = () => {
     sessionStorage.removeItem(getStorageKey(audience));
-    hasRestoredRef.current = false;
+    restoredForAudience.current = null;
     if (summary) {
       setMessages([{ role: "assistant", content: summary }]);
     } else {
@@ -98,6 +108,7 @@ export default function AiSummaryCard({ data, audience }: AiSummaryCardProps) {
     setChatError(null);
   };
 
+  // ── Send a follow‑up question ────────────────────────────────
   const handleSend = async () => {
     const question = input.trim();
     if (!question || isChatLoading) return;
@@ -117,7 +128,7 @@ export default function AiSummaryCard({ data, audience }: AiSummaryCardProps) {
           question,
           data,
           audience,
-          history: updated.slice(-7, -1), // last 6 before the latest user message
+          history: updated.slice(-7, -1), // last 6 before the latest
         }),
       });
 
@@ -153,7 +164,6 @@ export default function AiSummaryCard({ data, audience }: AiSummaryCardProps) {
               {AUDIENCE_DESCRIPTIONS[audience]}
             </p>
           </div>
-          {/* Reset button – only visible when chat has extra messages */}
           {messages.length > 1 && (
             <Button
               variant="ghost"
@@ -167,7 +177,7 @@ export default function AiSummaryCard({ data, audience }: AiSummaryCardProps) {
           )}
         </div>
 
-        {/* Messages area – fixed max height with internal scroll */}
+        {/* Messages area */}
         <div className="min-h-[120px] max-h-[500px] overflow-y-auto space-y-3 pr-1">
           {isLoading && (
             <div className="space-y-3">
