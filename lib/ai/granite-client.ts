@@ -1,7 +1,8 @@
-interface GraniteChatResponse {
+interface ChatResponse {
   choices?: { message?: { content?: string } }[];
 }
 
+// ── IAM token exchange (for watsonx) ──
 async function getIamToken(apiKey: string): Promise<string> {
   const res = await fetch("https://iam.cloud.ibm.com/identity/token", {
     method: "POST",
@@ -27,6 +28,7 @@ async function getIamToken(apiKey: string): Promise<string> {
   return data.access_token as string;
 }
 
+// ── Original watsonx function (cron summaries) ──
 export async function getGraniteSummary(prompt: string): Promise<string> {
   const apiKey = process.env.WATSONX_API_KEY;
   if (!apiKey) throw new Error("WATSONX_API_KEY is not set");
@@ -34,7 +36,9 @@ export async function getGraniteSummary(prompt: string): Promise<string> {
   const projectId = process.env.WATSONX_PROJECT_ID;
   if (!projectId) throw new Error("WATSONX_PROJECT_ID is not set");
 
-  const modelId = process.env.WATSONX_MODEL_ID || "ibm/granite-3-8b-instruct";
+  const modelId =
+    process.env.WATSONX_MODEL_ID ||
+    "mistralai/mistral-small-3-1-24b-instruct-2503";
 
   const token = await getIamToken(apiKey);
 
@@ -51,15 +55,8 @@ export async function getGraniteSummary(prompt: string): Promise<string> {
     body: JSON.stringify({
       model_id: modelId,
       messages: [
-        {
-          role: "system",
-          content:
-            "You are a concise space weather advisor. Provide exactly the summary requested by the user. Do not add extra commentary.",
-        },
-        {
-          role: "user",
-          content: prompt,
-        },
+        { role: "system", content: "You are a concise space weather advisor." },
+        { role: "user", content: prompt },
       ],
       parameters: {
         decoding_method: "greedy",
@@ -77,12 +74,42 @@ export async function getGraniteSummary(prompt: string): Promise<string> {
     throw new Error(`Granite API error ${res.status}: ${errorText}`);
   }
 
-  const json: GraniteChatResponse = await res.json();
+  const json: ChatResponse = await res.json();
   const text = json.choices?.[0]?.message?.content;
+  if (!text?.trim()) throw new Error("Granite returned empty response");
+  return text.trim();
+}
 
-  if (!text || text.trim().length === 0) {
-    throw new Error("Granite returned empty response");
+// ── Groq chat function (used by chatbot) ──
+export async function getGroqChatResponse(
+  messages: { role: string; content: string }[],
+): Promise<string> {
+  const apiKey = process.env.GROQ_API_KEY;
+  if (!apiKey) throw new Error("GROQ_API_KEY is not set");
+
+  const modelId = process.env.GROQ_MODEL_ID || "llama-3.1-8b-instant";
+
+  const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model: modelId,
+      messages,
+      temperature: 0.3,
+      max_tokens: 400,
+    }),
+  });
+
+  if (!res.ok) {
+    const errorText = await res.text();
+    throw new Error(`Groq API error ${res.status}: ${errorText}`);
   }
 
+  const json: ChatResponse = await res.json();
+  const text = json.choices?.[0]?.message?.content;
+  if (!text?.trim()) throw new Error("Groq returned empty response");
   return text.trim();
 }

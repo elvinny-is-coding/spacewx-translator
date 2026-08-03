@@ -75,7 +75,7 @@ export interface DailyBriefingInput {
 
 // ── Shared guardrails, applied to every audience ──
 
-const COMMON_GUIDANCE = `
+export const COMMON_GUIDANCE = `
 IMPORTANT RULES:
 - If an X-class flare is present, NEVER say "no significant impacts" — it causes HF blackouts.
 - If S-scale >= 1, mention the radiation storm and its effects on polar-route aviation / high-latitude HF.

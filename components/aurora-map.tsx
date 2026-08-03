@@ -9,11 +9,16 @@ import {
   Marker,
   Popup,
   Polygon,
+  ZoomControl,
 } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { useOvation } from "@/hooks/use-ovation";
-import { getVisibilityFromGrid, computeOvalBoundary } from "@/lib/aurora-utils";
+import {
+  getVisibilityFromGrid,
+  computeOvalBoundary,
+  sampleGridBilinear,
+} from "@/lib/aurora-utils";
 import type { OvationGrid } from "@/types/ovation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -73,31 +78,9 @@ function colorForProbability(prob: number): [number, number, number, number] {
   return [last.rgb[0], last.rgb[1], last.rgb[2], last.a];
 }
 
-function sampleGridBilinear(
-  grid: OvationGrid,
-  rowF: number,
-  colF: number,
-): number {
-  const rows = grid.rows;
-  const cols = grid.cols;
-
-  const row0 = Math.max(0, Math.min(rows - 1, Math.floor(rowF)));
-  const row1 = Math.min(rows - 1, row0 + 1);
-  const fr = rowF - row0;
-
-  const col0 = ((Math.floor(colF) % cols) + cols) % cols;
-  const col1 = (col0 + 1) % cols;
-  const fc = colF - Math.floor(colF);
-
-  const v00 = grid.grid[row0][col0];
-  const v01 = grid.grid[row0][col1];
-  const v10 = grid.grid[row1][col0];
-  const v11 = grid.grid[row1][col1];
-
-  const top = v00 * (1 - fc) + v01 * fc;
-  const bottom = v10 * (1 - fc) + v11 * fc;
-  return top * (1 - fr) + bottom * fr;
-}
+// sampleGridBilinear now lives in "@/lib/aurora-utils" and is shared with
+// getVisibilityFromGrid, so the heatmap color under a point and the
+// "Possible / Likely / …" label for that same point always agree.
 
 // ── Canvas Overlay ──
 function OvationCanvasOverlay({
@@ -156,6 +139,19 @@ function OvationCanvasOverlay({
     const bctx = buffer.getContext("2d");
     if (!ctx || !bctx) return;
 
+    // Re-pin the canvas to the map's current pixel origin before every
+    // redraw. Leaflet pans by CSS-transforming the pane hierarchy (so
+    // tiles can follow the cursor without a redraw), and it only resets
+    // that transform to zero on a full view reset — not on every
+    // moveend. This canvas, however, is a full-viewport buffer we
+    // regenerate from scratch each time, assuming its own (0,0) lines
+    // up with the map container's (0,0). Left uncorrected, the fresh
+    // image renders at container (0,0) + whatever transform offset is
+    // still on the pane, i.e. shifted out of the visible viewport —
+    // which is why the aurora appeared to vanish after panning.
+    const topLeft = map.containerPointToLayerPoint([0, 0]);
+    L.DomUtil.setPosition(canvas, topLeft);
+
     const { width, height } = canvas;
     ctx.clearRect(0, 0, width, height);
 
@@ -163,16 +159,31 @@ function OvationCanvasOverlay({
     const data = imgData.data;
     let activeCount = 0;
 
+    // Perf: map.containerPointToLatLng() is a real projection call, and
+    // calling it once per buffer pixel (BUFFER_W * BUFFER_H = 41,600
+    // calls) was the hot path here. With an unrotated Leaflet map,
+    // screen-Y alone determines latitude and screen-X alone determines
+    // longitude, so we precompute two 1-D lookup tables
+    // (BUFFER_W + BUFFER_H = 420 calls) instead — about 100x fewer
+    // projection calls per redraw.
+    const latForRow = new Float64Array(BUFFER_H);
     for (let by = 0; by < BUFFER_H; by++) {
       const screenY = (by / BUFFER_H) * height;
+      latForRow[by] = map.containerPointToLatLng([0, screenY]).lat;
+    }
+    const lonForCol = new Float64Array(BUFFER_W);
+    for (let bx = 0; bx < BUFFER_W; bx++) {
+      const screenX = (bx / BUFFER_W) * width;
+      lonForCol[bx] = map.containerPointToLatLng([screenX, 0]).lng;
+    }
+
+    for (let by = 0; by < BUFFER_H; by++) {
+      const lat = latForRow[by];
+      if (lat > 90 || lat < -90) continue;
+      const rowF = 90 - lat;
+
       for (let bx = 0; bx < BUFFER_W; bx++) {
-        const screenX = (bx / BUFFER_W) * width;
-        const latlng = map.containerPointToLatLng([screenX, screenY]);
-
-        if (latlng.lat > 90 || latlng.lat < -90) continue;
-
-        const lon = ((latlng.lng % 360) + 360) % 360;
-        const rowF = 90 - latlng.lat;
+        const lon = ((lonForCol[bx] % 360) + 360) % 360;
         const colF = lon;
 
         const prob = sampleGridBilinear(grid, rowF, colF);
@@ -193,6 +204,10 @@ function OvationCanvasOverlay({
     ctx.save();
     ctx.imageSmoothingEnabled = true;
     ctx.imageSmoothingQuality = "high";
+    // NOTE: ctx.filter blur is a known slow path on Safari/iOS canvas.
+    // If profiling shows this is a bottleneck on mobile, consider a
+    // manual box-blur on the low-res buffer, or CSS-blurring the canvas
+    // element itself, instead of the canvas 2D filter.
     ctx.filter = `blur(${OVERLAY_BLUR_PX}px)`;
     ctx.drawImage(buffer, 0, 0, BUFFER_W, BUFFER_H, 0, 0, width, height);
     ctx.restore();
@@ -417,11 +432,60 @@ export default function AuroraMap({
     );
   };
 
-  const handleMapClick = useCallback((lat: number, lng: number) => {
-    setTargetLocation({ lat, lng });
-    setSelectionSource("tap");
-    setHasInteracted(true);
+  // Best-effort reverse geocoding for tapped points, so the visibility
+  // panel shows a real place name instead of the generic "Selected
+  // location" fallback. If the request fails or is superseded by a
+  // newer tap, the fallback label just stays in place — this never
+  // blocks or breaks the visibility lookup itself.
+  const geocodeAbortRef = useRef<AbortController | null>(null);
+
+  useEffect(() => {
+    return () => {
+      geocodeAbortRef.current?.abort();
+    };
   }, []);
+
+  const reverseGeocode = useCallback(async (lat: number, lng: number) => {
+    geocodeAbortRef.current?.abort();
+    const controller = new AbortController();
+    geocodeAbortRef.current = controller;
+
+    try {
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&zoom=10`,
+        { signal: controller.signal },
+      );
+      if (!res.ok) return;
+      const json = await res.json();
+      const place: string | undefined =
+        json?.address?.city ||
+        json?.address?.town ||
+        json?.address?.village ||
+        json?.address?.state ||
+        json?.address?.country;
+
+      if (!place) return;
+
+      setTargetLocation((prev) =>
+        prev && prev.lat === lat && prev.lng === lng
+          ? { ...prev, label: place }
+          : prev,
+      );
+    } catch {
+      // Aborted (superseded by a newer tap) or network error — keep the
+      // generic fallback label.
+    }
+  }, []);
+
+  const handleMapClick = useCallback(
+    (lat: number, lng: number) => {
+      setTargetLocation({ lat, lng });
+      setSelectionSource("tap");
+      setHasInteracted(true);
+      reverseGeocode(lat, lng);
+    },
+    [reverseGeocode],
+  );
 
   useEffect(() => {
     if (!grid || !targetLocation) return;
@@ -485,6 +549,11 @@ export default function AuroraMap({
           )}
 
           <MapClickHandler onClick={handleMapClick} />
+          {/* Explicit zoom control, positioned top-left since top-right,
+              bottom-left, and bottom-right are all already occupied by
+              the custom overlays below. The conditional badge that used
+              to sit at top-3 is shifted down (top-20) to clear it. */}
+          <ZoomControl position="topleft" />
 
           {userLocation && (
             <Marker
@@ -521,14 +590,14 @@ export default function AuroraMap({
         )}
 
         {ovalPoints ? (
-          <div className="absolute top-3 left-3 z-[1000] bg-deep-indigo/90 text-aurora-green text-[10px] px-2 py-1 rounded shadow">
+          <div className="absolute top-20 left-3 z-[1000] bg-deep-indigo/90 text-aurora-green text-[10px] px-2 py-1 rounded shadow">
             Simplified forecast oval (Kp {ovalKp})
           </div>
         ) : (
           grid &&
           activeCellCount === 0 && (
-            <div className="absolute top-3 left-3 z-[1000] bg-deep-indigo/90 text-faint-star text-xs px-3 py-1.5 rounded shadow">
-              No significant aurora activity detected right now
+            <div className="absolute top-20 left-3 z-[1000] bg-deep-indigo/90 text-faint-star text-xs px-3 py-1.5 rounded shadow">
+              No significant aurora activity in this view right now
             </div>
           )
         )}

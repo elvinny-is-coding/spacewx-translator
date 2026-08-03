@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { getGraniteSummary } from "@/lib/ai/granite-client";
+import { getCloudflareSummary } from "@/lib/ai/cloudflare-client";
 import { buildPrompt } from "@/lib/ai/prompts";
 import { getCachedSummary, setCachedSummary } from "@/lib/spacewx/cache";
 import { severityFromKp } from "@/config/constants";
@@ -83,7 +84,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 1. Try to serve a precomputed daily summary (no token cost)
+    // 1. Try to serve a precomputed daily summary
     const today = new Date().toISOString().slice(0, 10);
     const { data: precomputed, error: fetchError } = await supabaseAdmin
       .from("daily_summaries")
@@ -96,26 +97,32 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ summary: precomputed.summary });
     }
 
-    // 2. Check in‑memory cache second
+    // 2. Check in‑memory cache
     const cached = getCachedSummary(data, audience);
     if (cached) {
       return NextResponse.json({ summary: cached });
     }
 
     let summary: string;
+    const prompt = buildPrompt(data, audience);
 
-    // 3. Try Granite, fall back to deterministic summary
+    // 3. Try primary → Cloudflare → deterministic
     try {
-      const prompt = buildPrompt(data, audience);
       summary = await getGraniteSummary(prompt);
-    } catch (error) {
-      console.warn("Granite unavailable, using fallback summary", error);
-      summary = generateFallbackSummary(data, audience);
+    } catch (graniteError) {
+      console.warn("Granite unavailable, trying Cloudflare", graniteError);
+      try {
+        summary = await getCloudflareSummary(prompt);
+      } catch (cloudflareError) {
+        console.warn(
+          "Cloudflare also unavailable, using deterministic fallback",
+          cloudflareError,
+        );
+        summary = generateFallbackSummary(data, audience);
+      }
     }
 
-    // Cache the result (optional, only used for in-memory dedup within same session)
     setCachedSummary(data, audience, summary);
-
     return NextResponse.json({ summary });
   } catch (error: any) {
     console.error("AI summary error:", error);

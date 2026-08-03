@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import type { TimelineEvent } from "@/types/timeline";
 import EventTimelineModal from "@/components/event-timeline-modal";
+import EventTimelineModalSingle from "@/components/event-timeline-modal-single";
 
 type DateRange = "24h" | "7d" | "30d" | "custom";
 
@@ -89,6 +90,9 @@ export default function EventTimeline() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
+  const [selectedEvent, setSelectedEvent] = useState<TimelineEvent | null>(
+    null,
+  );
 
   const fetchEvents = useCallback(async () => {
     setIsLoading(true);
@@ -235,51 +239,65 @@ export default function EventTimeline() {
           {!isLoading && !error && events.length > 0 && (
             <>
               <div className="relative pl-6 border-l-2 border-deep-indigo space-y-6">
-                {events.slice(0, 5).map((event, idx) => (
-                  <div key={`${event.id}-${idx}`} className="relative">
-                    <div
-                      className="absolute -left-[1.65rem] top-1 w-3 h-3 rounded-full border-2 border-deep-indigo"
-                      style={{ backgroundColor: `var(--color-${event.color})` }}
-                    />
-                    <p className="text-xs text-faint-star mb-1">
-                      {formatRelativeTime(event.time)}
-                    </p>
-                    <Card className="border-none bg-void-navy/60 hover:bg-void-navy transition-colors">
-                      <CardContent className="p-4 flex items-start gap-3">
-                        <div className="mt-0.5 shrink-0">
-                          {EVENT_ICONS[event.type]}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-1">
-                            <span
-                              className="text-xs font-semibold uppercase tracking-wider"
-                              style={{ color: `var(--color-${event.color})` }}
-                            >
-                              {EVENT_LABELS[event.type]}
-                            </span>
-                            <span className="text-xs text-faint-star">
-                              {new Date(event.time).toLocaleTimeString(
-                                "en-US",
-                                {
-                                  hour: "2-digit",
-                                  minute: "2-digit",
-                                },
-                              )}
-                            </span>
+                {events.slice(0, 5).map((event, idx) => {
+                  const needsTruncation =
+                    (event.description?.length ?? 0) > 150;
+
+                  return (
+                    <div key={`${event.id}-${idx}`} className="relative">
+                      <div
+                        className="absolute -left-[1.65rem] top-1 w-3 h-3 rounded-full border-2 border-deep-indigo"
+                        style={{
+                          backgroundColor: `var(--color-${event.color})`,
+                        }}
+                      />
+                      <p className="text-xs text-faint-star mb-1">
+                        {formatRelativeTime(event.time)}
+                      </p>
+                      <Card
+                        className="border-none bg-void-navy/60 hover:bg-void-navy transition-colors cursor-pointer"
+                        onClick={() => setSelectedEvent(event)}
+                      >
+                        <CardContent className="p-4 flex items-start gap-3">
+                          <div className="mt-0.5 shrink-0">
+                            {EVENT_ICONS[event.type]}
                           </div>
-                          <p className="text-sm font-medium text-starlight">
-                            {event.label}
-                          </p>
-                          {event.description && (
-                            <p className="text-xs text-faint-star mt-1 leading-relaxed">
-                              {event.description}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span
+                                className="text-xs font-semibold uppercase tracking-wider"
+                                style={{
+                                  color: `var(--color-${event.color})`,
+                                }}
+                              >
+                                {EVENT_LABELS[event.type]}
+                              </span>
+                              <span className="text-xs text-faint-star">
+                                {new Date(event.time).toLocaleTimeString(
+                                  "en-US",
+                                  {
+                                    hour: "2-digit",
+                                    minute: "2-digit",
+                                  },
+                                )}
+                              </span>
+                            </div>
+                            <p className="text-sm font-medium text-starlight">
+                              {event.label}
                             </p>
-                          )}
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </div>
-                ))}
+                            {event.description && (
+                              <p className="text-xs text-faint-star mt-1 leading-relaxed">
+                                {needsTruncation
+                                  ? event.description.slice(0, 150) + "…"
+                                  : event.description}
+                              </p>
+                            )}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </div>
+                  );
+                })}
               </div>
 
               {/* View all button */}
@@ -301,6 +319,16 @@ export default function EventTimeline() {
         </CardContent>
       </Card>
 
+      {/* Single-event modal */}
+      <EventTimelineModalSingle
+        event={selectedEvent}
+        open={!!selectedEvent}
+        onOpenChange={(open) => {
+          if (!open) setSelectedEvent(null);
+        }}
+      />
+
+      {/* All-events modal */}
       <EventTimelineModal
         events={events}
         open={modalOpen}

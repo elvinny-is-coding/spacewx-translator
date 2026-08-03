@@ -20,6 +20,7 @@ import {
 } from "@/lib/spacewx/normalizers";
 import { buildDailyBriefingPrompt } from "@/lib/ai/prompts";
 import { getGraniteSummary } from "@/lib/ai/granite-client";
+import { getCloudflareSummary } from "@/lib/ai/cloudflare-client";
 import { reshapeOvationGrid } from "@/lib/aurora-utils";
 import type { Audience } from "@/types/audience";
 import type { NotableEvent, DailyBriefingInput } from "@/lib/ai/prompts";
@@ -246,14 +247,23 @@ export async function POST(request: NextRequest) {
       let summary: string;
       const prompt = buildDailyBriefingPrompt(audience, briefingInput);
 
+      // Try Granite → Cloudflare → deterministic
       try {
         summary = await getGraniteSummary(prompt);
-      } catch (err) {
+      } catch (graniteErr) {
         console.warn(
-          `Granite failed for ${audience}, using deterministic fallback.`,
-          err,
+          `Granite failed for ${audience}, trying Cloudflare fallback`,
+          graniteErr,
         );
-        summary = deterministicDailyBriefing(briefingInput);
+        try {
+          summary = await getCloudflareSummary(prompt);
+        } catch (cloudflareErr) {
+          console.warn(
+            `Cloudflare also failed for ${audience}, using deterministic fallback`,
+            cloudflareErr,
+          );
+          summary = deterministicDailyBriefing(briefingInput);
+        }
       }
 
       const { error } = await supabaseAdmin.from("daily_summaries").upsert(

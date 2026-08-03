@@ -19,13 +19,18 @@ export const GEOMAGNETIC_NORTH_POLE = {
 /**
  * Probability thresholds for the "Will I see the aurora?" indicator.
  * Values correspond to OVATION probability (0–100 %).
+ *
+ * NOTE: this used to also have a `high: 75` entry that duplicated
+ * `likely` and was never referenced anywhere — removed. If you want a
+ * genuine 5th "Overhead / extreme" tier (the color scale and map legend
+ * already reach that far), add a threshold here (e.g. `high: 90`) and a
+ * matching branch + CSS color token in getVisibilityFromGrid below.
  */
 export const VISIBILITY_THRESHOLDS = {
   none: 5, // < 5% → "No"
   low: 25, // 5–25% → "Low chance"
   possible: 50, // 25–50% → "Possible"
   likely: 75, // 50–75% → "Likely"
-  high: 75, // > 75% → "Very likely"
 };
 
 /**
@@ -70,6 +75,52 @@ export function reshapeOvationGrid(data: OvationData): OvationGrid {
     grid,
     forecastTime: data["Forecast Time"],
   };
+}
+
+// ── Grid Sampling ──
+
+/**
+ * Bilinearly samples the OVATION grid at a fractional (row, col)
+ * position, wrapping longitude around the antimeridian and clamping
+ * latitude at the poles.
+ *
+ * This is the single source of truth for "what's the aurora probability
+ * at this point on the grid" — it's used both by the canvas heatmap
+ * overlay and by getVisibilityFromGrid() below, so the color rendered
+ * under a point and the "Possible / Likely / …" label shown for that
+ * same point are always in agreement. (Previously the map component had
+ * its own copy of this function for the overlay, while
+ * getVisibilityFromGrid used plain nearest-neighbor rounding — the two
+ * could disagree near cell boundaries.)
+ *
+ * @param grid The reshaped OVATION grid.
+ * @param rowF Fractional row index (0 = 90°N, 180 = 90°S).
+ * @param colF Fractional column index (longitude in degrees, 0–359, wraps).
+ */
+export function sampleGridBilinear(
+  grid: OvationGrid,
+  rowF: number,
+  colF: number,
+): number {
+  const rows = grid.rows;
+  const cols = grid.cols;
+
+  const row0 = Math.max(0, Math.min(rows - 1, Math.floor(rowF)));
+  const row1 = Math.min(rows - 1, row0 + 1);
+  const fr = rowF - row0;
+
+  const col0 = ((Math.floor(colF) % cols) + cols) % cols;
+  const col1 = (col0 + 1) % cols;
+  const fc = colF - Math.floor(colF);
+
+  const v00 = grid.grid[row0][col0];
+  const v01 = grid.grid[row0][col1];
+  const v10 = grid.grid[row1][col0];
+  const v11 = grid.grid[row1][col1];
+
+  const top = v00 * (1 - fc) + v01 * fc;
+  const bottom = v10 * (1 - fc) + v11 * fc;
+  return top * (1 - fr) + bottom * fr;
 }
 
 // ── Geomagnetic Latitude ──
@@ -216,8 +267,10 @@ export interface VisibilityResult {
 }
 
 /**
- * Determines aurora visibility at a specific location by sampling the
- * nearest OVATION grid cell.
+ * Determines aurora visibility at a specific location by bilinearly
+ * sampling the OVATION grid — the same sampling method the canvas
+ * overlay uses, so the label shown here always matches the color
+ * rendered on the map at that point.
  *
  * @param grid The reshaped OVATION grid.
  * @param lat Geographic latitude of the location.
@@ -229,13 +282,11 @@ export function getVisibilityFromGrid(
   lat: number,
   lon: number,
 ): VisibilityResult {
-  // Map geographic coordinates to grid indices
-  const col = Math.round(((lon % 360) + 360) % 360); // normalise to 0–359
-  const row = Math.round(90 - lat); // 90°N → row 0, 90°S → row 180
+  const lon360 = ((lon % 360) + 360) % 360; // normalise to 0–359
+  const rowF = 90 - lat; // 90°N → row 0, 90°S → row 180
+  const colF = lon360;
 
-  const safeRow = Math.max(0, Math.min(OVATION_ROWS - 1, row));
-  const safeCol = Math.max(0, Math.min(OVATION_COLS - 1, col));
-  const prob = grid.grid[safeRow][safeCol] ?? 0;
+  const prob = sampleGridBilinear(grid, rowF, colF);
 
   let label: string;
   let color: string;

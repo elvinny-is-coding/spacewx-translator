@@ -19,6 +19,7 @@ import {
   Loader2,
 } from "lucide-react";
 import type { TimelineEvent } from "@/types/timeline";
+import EventTimelineModalSingle from "@/components/event-timeline-modal-single";
 
 interface EventTimelineModalProps {
   events: TimelineEvent[];
@@ -53,9 +54,11 @@ export default function EventTimelineModal({
 }: EventTimelineModalProps) {
   const [visibleCount, setVisibleCount] = useState(BATCH_SIZE);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [selectedEvent, setSelectedEvent] = useState<TimelineEvent | null>(
+    null,
+  );
   const listEndRef = useRef<HTMLDivElement>(null);
 
-  // Reset visible count when modal opens
   useEffect(() => {
     if (open) {
       setVisibleCount(BATCH_SIZE);
@@ -74,88 +77,100 @@ export default function EventTimelineModal({
   const visibleEvents = events.slice(0, visibleCount);
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-deep-indigo border-void-navy text-starlight max-w-2xl max-h-[85vh] flex flex-col">
-        <DialogHeader>
-          <DialogTitle className="text-starlight font-display text-lg flex items-center gap-2">
-            <Activity size={18} className="text-aurora-green" />
-            Space Weather Events ({events.length})
-          </DialogTitle>
-          <DialogDescription className="text-faint-star">
-            A detailed timeline of flares, CMEs, storms, and Kp spikes. Scroll
-            to load more events.
-          </DialogDescription>
-        </DialogHeader>
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="bg-deep-indigo border-void-navy text-starlight max-w-2xl max-h-[85vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="text-starlight font-display text-lg flex items-center gap-2">
+              <Activity size={18} className="text-aurora-green" />
+              Space Weather Events ({events.length})
+            </DialogTitle>
+            <DialogDescription className="text-faint-star">
+              A detailed timeline of flares, CMEs, storms, and Kp spikes. Scroll
+              to load more events. Click any event for full details.
+            </DialogDescription>
+          </DialogHeader>
 
-        {/* Scrollable event list */}
-        <div className="overflow-y-auto flex-1 pr-1 space-y-3 mt-4 custom-scrollbar">
-          {visibleEvents.map((event, idx) => (
-            <div
-              key={`${event.id}-${idx}`}
-              className="rounded-lg border border-void-navy bg-void-navy/50 p-4 transition-colors hover:bg-void-navy/70"
-            >
-              <div className="flex items-start gap-3">
-                <div className="mt-0.5 shrink-0">{EVENT_ICONS[event.type]}</div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span
-                      className="text-xs font-semibold uppercase tracking-wider"
-                      style={{ color: `var(--color-${event.color})` }}
-                    >
-                      {EVENT_LABELS[event.type]}
-                    </span>
-                    <span className="text-xs text-faint-star">
-                      {new Date(event.time).toLocaleString("en-US", {
-                        month: "short",
-                        day: "numeric",
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
-                    </span>
+          <div className="overflow-y-auto flex-1 pr-1 space-y-3 mt-4 custom-scrollbar">
+            {visibleEvents.map((event, idx) => (
+              <div
+                key={`${event.id}-${idx}`}
+                className="rounded-lg border border-void-navy bg-void-navy/50 p-4 transition-colors hover:bg-void-navy/70 cursor-pointer"
+                onClick={() => setSelectedEvent(event)}
+              >
+                <div className="flex items-start gap-3">
+                  <div className="mt-0.5 shrink-0">
+                    {EVENT_ICONS[event.type]}
                   </div>
-                  <p className="text-sm font-medium text-starlight">
-                    {event.label}
-                  </p>
-                  {event.description && (
-                    <p className="text-xs text-faint-star mt-1 leading-relaxed">
-                      {event.description}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span
+                        className="text-xs font-semibold uppercase tracking-wider"
+                        style={{ color: `var(--color-${event.color})` }}
+                      >
+                        {EVENT_LABELS[event.type]}
+                      </span>
+                      <span className="text-xs text-faint-star">
+                        {new Date(event.time).toLocaleString("en-US", {
+                          month: "short",
+                          day: "numeric",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </span>
+                    </div>
+                    <p className="text-sm font-medium text-starlight">
+                      {event.label}
                     </p>
-                  )}
+                    {event.description && (
+                      <p className="text-xs text-faint-star mt-1 leading-relaxed">
+                        {event.description}
+                      </p>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            ))}
 
-          {/* Load more trigger */}
-          {hasMore && (
-            <div className="flex justify-center py-3" ref={listEndRef}>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={loadMore}
-                disabled={isLoadingMore}
-                className="border-deep-indigo text-faint-star hover:bg-deep-indigo/50 hover:text-starlight"
-              >
-                {isLoadingMore ? (
-                  <>
-                    <Loader2 size={14} className="mr-2 animate-spin" />
-                    Loading…
-                  </>
-                ) : (
-                  <>
-                    <ChevronDown size={14} className="mr-2" />
-                    Load {Math.min(
-                      BATCH_SIZE,
-                      events.length - visibleCount,
-                    )}{" "}
-                    more ({events.length - visibleCount} remaining)
-                  </>
-                )}
-              </Button>
-            </div>
-          )}
-        </div>
-      </DialogContent>
-    </Dialog>
+            {hasMore && (
+              <div className="flex justify-center py-3" ref={listEndRef}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={loadMore}
+                  disabled={isLoadingMore}
+                  className="border-deep-indigo text-faint-star hover:bg-deep-indigo/50 hover:text-starlight"
+                >
+                  {isLoadingMore ? (
+                    <>
+                      <Loader2 size={14} className="mr-2 animate-spin" />
+                      Loading…
+                    </>
+                  ) : (
+                    <>
+                      <ChevronDown size={14} className="mr-2" />
+                      Load {Math.min(
+                        BATCH_SIZE,
+                        events.length - visibleCount,
+                      )}{" "}
+                      more ({events.length - visibleCount} remaining)
+                    </>
+                  )}
+                </Button>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Single‑event detail modal */}
+      <EventTimelineModalSingle
+        event={selectedEvent}
+        open={!!selectedEvent}
+        onOpenChange={(o) => {
+          if (!o) setSelectedEvent(null);
+        }}
+      />
+    </>
   );
 }

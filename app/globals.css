@@ -31,10 +31,11 @@
   @keyframes breathe {
     0%,
     100% {
-      transform: scale(1);
+      /* translateZ(0) forces GPU rendering */
+      transform: scale(1) translateZ(0);
     }
     50% {
-      transform: scale(0.98);
+      transform: scale(0.98) translateZ(0);
     }
   }
 }
