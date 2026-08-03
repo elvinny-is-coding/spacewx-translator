@@ -1,6 +1,5 @@
 import StatusBar from "@/components/status-bar";
 import HeroBriefing from "@/components/hero-briefing";
-import DataExplorer from "@/components/data-explorer";
 import AuroraGauge from "@/components/aurora-gauge";
 import ClientMapSection from "@/components/client-map-section";
 import DashboardClient from "@/components/dashboard-client";
@@ -111,37 +110,35 @@ export default async function HomePage() {
 
       <HeroBriefing data={data} />
 
-      <DataExplorer>
-        <section className="space-y-2 text-center">
+      <section className="space-y-2 text-center">
+        <h2 className="font-display text-2xl text-starlight">
+          Current Space Weather
+        </h2>
+        <p className="text-sm text-faint-star">
+          The Kp index shows how disturbed Earth’s magnetic field is right now.
+          Higher values mean brighter aurora and possible effects on satellites,
+          power grids, and radio signals.
+        </p>
+      </section>
+
+      <section className="flex justify-center">
+        <AuroraGauge kp={data.kp} />
+      </section>
+
+      <section className="space-y-4">
+        <div className="space-y-2">
           <h2 className="font-display text-2xl text-starlight">
-            Current Space Weather
+            Where Can You See the Aurora?
           </h2>
           <p className="text-sm text-faint-star">
-            The Kp index shows how disturbed Earth’s magnetic field is right
-            now. Higher values mean brighter aurora and possible effects on
-            satellites, power grids, and radio signals.
+            Tap anywhere on the map or use your location to see if the aurora
+            might be visible near you right now.
           </p>
-        </section>
+        </div>
+        <ClientMapSection kpForecast={data.kpForecast} />
+      </section>
 
-        <section className="flex justify-center">
-          <AuroraGauge kp={data.kp} />
-        </section>
-
-        <section className="space-y-4">
-          <div className="space-y-2">
-            <h2 className="font-display text-2xl text-starlight">
-              Where Can You See the Aurora?
-            </h2>
-            <p className="text-sm text-faint-star">
-              Tap anywhere on the map or use your location to see if the aurora
-              might be visible near you right now.
-            </p>
-          </div>
-          <ClientMapSection kpForecast={data.kpForecast} />
-        </section>
-
-        <DashboardClient data={data} />
-      </DataExplorer>
+      <DashboardClient data={data} />
     </main>
   );
 }
