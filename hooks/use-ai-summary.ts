@@ -6,6 +6,7 @@ import type { Audience } from "@/types/audience";
 
 interface SummaryState {
   summary: string | null;
+  suggestedPrompts: string[];
   isLoading: boolean;
   error: string | null;
 }
@@ -16,6 +17,7 @@ export function useAiSummary(
 ) {
   const [state, setState] = useState<SummaryState>({
     summary: null,
+    suggestedPrompts: [],
     isLoading: false,
     error: null,
   });
@@ -35,7 +37,12 @@ export function useAiSummary(
     let cancelled = false;
 
     async function fetchSummary() {
-      setState({ summary: null, isLoading: true, error: null });
+      setState({
+        summary: null,
+        suggestedPrompts: [],
+        isLoading: true,
+        error: null,
+      });
 
       try {
         const res = await fetch("/api/ai-summary", {
@@ -51,12 +58,22 @@ export function useAiSummary(
         const json = await res.json();
 
         if (!cancelled && currentAudienceRef.current === audience) {
-          setState({ summary: json.summary, isLoading: false, error: null });
+          setState({
+            summary: json.summary,
+            suggestedPrompts: json.suggestedPrompts ?? [],
+            isLoading: false,
+            error: null,
+          });
         }
       } catch (err: unknown) {
         if (!cancelled && currentAudienceRef.current === audience) {
           const message = err instanceof Error ? err.message : "Unknown error";
-          setState({ summary: null, isLoading: false, error: message });
+          setState({
+            summary: null,
+            suggestedPrompts: [],
+            isLoading: false,
+            error: message,
+          });
         }
       }
     }

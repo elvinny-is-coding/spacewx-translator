@@ -1,20 +1,14 @@
+// app/alerts/page.tsx
 "use client";
 
-import TrendChart from "@/components/trend-chart";
-import HistoricalChart from "@/components/historical-chart";
-import EventTimeline from "@/components/event-timeline";
-import ActiveAlerts from "@/components/active-alerts";
+import { useSpaceWeather } from "@/providers/space-weather-provider";
+import { useThresholds } from "@/hooks/use-thresholds";
 import SourceWarningBanner from "@/components/source-warning-banner";
 import ThresholdAlertBanner from "@/components/threshold-alert-banner";
 import ThresholdManager from "@/components/threshold-manager";
-import { useThresholds } from "@/hooks/use-thresholds";
-import type { SpaceWeatherData } from "@/types/spacewx";
 
-interface DashboardClientProps {
-  data: SpaceWeatherData;
-}
-
-export default function DashboardClient({ data }: DashboardClientProps) {
+export default function AlertsPage() {
+  const data = useSpaceWeather();
   const {
     thresholds,
     breachedAlerts,
@@ -25,7 +19,17 @@ export default function DashboardClient({ data }: DashboardClientProps) {
   } = useThresholds(data);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
+      <div className="space-y-2">
+        <h2 className="font-display text-2xl text-starlight">
+          Custom Alert Thresholds
+        </h2>
+        <p className="text-sm text-faint-star">
+          Set personal thresholds for Kp index, solar wind speed, and Bz. Get
+          notified when current conditions cross your defined limits.
+        </p>
+      </div>
+
       <SourceWarningBanner warnings={data.warnings} />
 
       <ThresholdAlertBanner breachedAlerts={breachedAlerts} />
@@ -37,14 +41,6 @@ export default function DashboardClient({ data }: DashboardClientProps) {
         onEdit={updateThreshold}
         onDelete={deleteThreshold}
       />
-
-      <TrendChart forecast={data.kpForecast} />
-
-      <HistoricalChart />
-
-      <EventTimeline />
-
-      <ActiveAlerts alerts={data.alerts} />
     </div>
   );
 }

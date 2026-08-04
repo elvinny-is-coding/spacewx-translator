@@ -84,23 +84,26 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 1. Try to serve a precomputed daily summary
+    // 1. Try to serve a precomputed daily summary + suggested prompts
     const today = new Date().toISOString().slice(0, 10);
     const { data: precomputed, error: fetchError } = await supabaseAdmin
       .from("daily_summaries")
-      .select("summary")
+      .select("summary, suggested_prompts")
       .eq("date", today)
       .eq("audience", audience)
       .maybeSingle();
 
     if (!fetchError && precomputed?.summary) {
-      return NextResponse.json({ summary: precomputed.summary });
+      return NextResponse.json({
+        summary: precomputed.summary,
+        suggestedPrompts: precomputed.suggested_prompts ?? [],
+      });
     }
 
     // 2. Check in‑memory cache
     const cached = getCachedSummary(data, audience);
     if (cached) {
-      return NextResponse.json({ summary: cached });
+      return NextResponse.json({ summary: cached, suggestedPrompts: [] });
     }
 
     let summary: string;
@@ -123,7 +126,7 @@ export async function POST(request: NextRequest) {
     }
 
     setCachedSummary(data, audience, summary);
-    return NextResponse.json({ summary });
+    return NextResponse.json({ summary, suggestedPrompts: [] });
   } catch (error: any) {
     console.error("AI summary error:", error);
     return NextResponse.json(

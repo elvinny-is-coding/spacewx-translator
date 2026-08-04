@@ -1,3 +1,4 @@
+// app/layout.tsx
 import type { Metadata } from "next";
 import {
   Space_Grotesk,
@@ -5,9 +6,9 @@ import {
   IBM_Plex_Mono,
   Geist,
 } from "next/font/google";
-import { Toaster } from "sonner";
 import "./globals.css";
 import { cn } from "@/lib/utils";
+import ClientLayout from "@/components/layout/layout-client";
 
 const geist = Geist({ subsets: ["latin"], variable: "--font-sans" });
 
@@ -55,17 +56,7 @@ export default function RootLayout({
       )}
     >
       <body className="min-h-screen bg-void-navy font-body text-starlight antialiased">
-        {children}
-        <Toaster
-          position="bottom-right"
-          toastOptions={{
-            style: {
-              background: "#131B33",
-              color: "#E7ECF5",
-              border: "1px solid #3ECF8E",
-            },
-          }}
-        />
+        <ClientLayout>{children}</ClientLayout>
       </body>
     </html>
   );
