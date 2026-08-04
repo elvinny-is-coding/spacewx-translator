@@ -193,7 +193,7 @@ export default function AiSidebar() {
         !open && "lg:hidden",
       )}
     >
-      <TooltipProvider delayDuration={200}>
+      <TooltipProvider>
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-void-navy">
           <h3 className="font-display text-base text-starlight flex items-center gap-2">
