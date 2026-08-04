@@ -200,23 +200,28 @@ export default function AiSidebar() {
             <Sparkles size={16} className="text-aurora-green" />
             AI Summary
           </h3>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-2">
             {messages.length > 1 && (
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={resetChat}
-                className="text-faint-star hover:text-starlight h-8 w-8"
-                title="Reset chat"
-              >
-                <RotateCcw size={14} />
-              </Button>
+              <>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={resetChat}
+                  className="text-faint-star hover:text-starlight h-8 w-8"
+                  title="Reset chat"
+                >
+                  <RotateCcw size={14} />
+                </Button>
+                {/* subtle separator */}
+                <span className="w-px h-4 bg-void-navy hidden sm:block" />
+              </>
             )}
             <Button
               variant="ghost"
               size="icon"
               onClick={() => setOpen(false)}
-              className="text-faint-star hover:text-starlight h-8 w-8 lg:hidden"
+              className="text-faint-star hover:text-starlight h-8 w-8"
+              title="Close sidebar"
             >
               <X size={16} />
             </Button>
