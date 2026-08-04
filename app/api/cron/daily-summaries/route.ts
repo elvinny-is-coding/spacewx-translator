@@ -22,8 +22,10 @@ import { buildDailyBriefingPrompt } from "@/lib/ai/prompts";
 import { getGraniteSummary } from "@/lib/ai/granite-client";
 import { getCloudflareSummary } from "@/lib/ai/cloudflare-client";
 import { reshapeOvationGrid } from "@/lib/aurora-utils";
+import { getSuggestedPrompts } from "@/lib/suggested-prompts";
 import type { Audience } from "@/types/audience";
 import type { NotableEvent, DailyBriefingInput } from "@/lib/ai/prompts";
+import type { SpaceWeatherData } from "@/types/spacewx";
 
 const AUDIENCES: Audience[] = ["general", "educator", "technical"];
 
@@ -148,8 +150,9 @@ export async function POST(request: NextRequest) {
     // Flares – filter notable and count background
     let notableFlares: NotableEvent[] = [];
     let backgroundFlareCount = 0;
+    let allFlares: ReturnType<typeof normalizeFlares> = [];
     if (flaresR.status === "fulfilled") {
-      const allFlares = normalizeFlares(flaresR.value);
+      allFlares = normalizeFlares(flaresR.value);
       for (const f of allFlares) {
         if (isNotableFlare(f.classType)) {
           notableFlares.push({ label: f.classType, time: f.beginTime });
@@ -162,8 +165,9 @@ export async function POST(request: NextRequest) {
     // CMEs – filter notable and count background
     let notableCMEs: NotableEvent[] = [];
     let backgroundCMECount = 0;
+    let allCMEs: ReturnType<typeof normalizeCMEs> = [];
     if (cmesR.status === "fulfilled") {
-      const allCMEs = normalizeCMEs(cmesR.value);
+      allCMEs = normalizeCMEs(cmesR.value);
       for (const c of allCMEs) {
         if (isNotableCME(c.speed, c.note)) {
           notableCMEs.push({
@@ -178,6 +182,19 @@ export async function POST(request: NextRequest) {
     }
 
     const alertSummary = buildAlertSummaryText(scales, alerts);
+
+    // Build a SpaceWeatherData snapshot for prompt generation
+    const spaceWeatherData: SpaceWeatherData = {
+      kp,
+      kpForecast: null,
+      solarWind,
+      alerts,
+      flares: allFlares,
+      cmes: allCMEs,
+      noaaScaleG: scales.g,
+      lastUpdated: new Date().toISOString(),
+      warnings: [],
+    };
 
     // ── Cache alerts into latest_alerts ──
     if (alertsR.status === "fulfilled") {
@@ -263,12 +280,16 @@ export async function POST(request: NextRequest) {
         }
       }
 
+      // Generate audience-specific suggested prompts from the live data
+      const prompts = getSuggestedPrompts(spaceWeatherData, audience);
+
       const { error } = await supabaseAdmin.from("daily_summaries").upsert(
         {
           date: today,
           audience,
           summary,
           alerts_count: alerts.length,
+          suggested_prompts: prompts,
         },
         { onConflict: "date, audience" },
       );
@@ -280,7 +301,6 @@ export async function POST(request: NextRequest) {
           code: error.code,
         };
       } else if (usedProvider === "deterministic") {
-        // Surface the Cloudflare failure in the response
         errors[`daily_summaries_${audience}`] = {
           message: "Used deterministic fallback — Cloudflare failed",
           cfError,

@@ -11,14 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useAiSummary } from "@/hooks/use-ai-summary";
-import {
-  Sparkles,
-  Send,
-  Loader2,
-  RotateCcw,
-  X,
-  ChevronRight,
-} from "lucide-react";
+import { Sparkles, Send, Loader2, RotateCcw, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Audience } from "@/types/audience";
 
@@ -72,7 +65,7 @@ function BaselineSummary({ audience }: { audience: Audience }) {
 
 export default function AiSidebar() {
   const data = useSpaceWeather();
-  const { open, setOpen } = useSidebar();
+  const { open } = useSidebar();
   const [audience, setAudience] = useState<Audience>("general");
   const { summary, isLoading, error, retry, suggestedPrompts } = useAiSummary(
     data,
@@ -138,13 +131,7 @@ export default function AiSidebar() {
       const question = questionOverride ?? input.trim();
       if (!question || isChatLoading) return;
 
-      // If called from a chip, clear the text input too
-      if (questionOverride !== undefined) {
-        setInput("");
-      } else {
-        setInput("");
-      }
-
+      setInput("");
       setChatError(null);
       const userMsg = { role: "user" as const, content: question };
       const updated = [...messages, userMsg];
@@ -194,38 +181,12 @@ export default function AiSidebar() {
       )}
     >
       <TooltipProvider>
-        {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-void-navy">
+        {/* Header — no buttons */}
+        <div className="px-4 py-3 border-b border-void-navy">
           <h3 className="font-display text-base text-starlight flex items-center gap-2">
             <Sparkles size={16} className="text-aurora-green" />
-            AI Summary
+            AI Assistant
           </h3>
-          <div className="flex items-center gap-2">
-            {messages.length > 1 && (
-              <>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={resetChat}
-                  className="text-faint-star hover:text-starlight h-8 w-8"
-                  title="Reset chat"
-                >
-                  <RotateCcw size={14} />
-                </Button>
-                {/* subtle separator */}
-                <span className="w-px h-4 bg-void-navy hidden sm:block" />
-              </>
-            )}
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setOpen(false)}
-              className="text-faint-star hover:text-starlight h-8 w-8"
-              title="Close sidebar"
-            >
-              <X size={16} />
-            </Button>
-          </div>
         </div>
 
         {/* Audience toggle */}
@@ -292,32 +253,8 @@ export default function AiSidebar() {
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Input area */}
+        {/* Bottom area: suggested prompts above, then input row with reset */}
         <div className="border-t border-void-navy px-4 py-3 space-y-2">
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              handleSend();
-            }}
-            className="flex items-center gap-2"
-          >
-            <Input
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              placeholder="Ask a follow‑up..."
-              disabled={isChatLoading || isLoading}
-              className="flex-1 bg-void-navy border-void-navy text-starlight placeholder:text-faint-star focus:border-aurora-green text-sm"
-            />
-            <Button
-              type="submit"
-              size="icon"
-              disabled={!input.trim() || isChatLoading || isLoading}
-              className="bg-aurora-green text-void-navy hover:bg-aurora-green/90 shrink-0"
-            >
-              <Send size={14} />
-            </Button>
-          </form>
-
           {/* Suggested prompts (from cached daily summaries) */}
           {suggestedPrompts.length > 0 && (
             <div className="flex flex-wrap gap-1.5">
@@ -337,6 +274,44 @@ export default function AiSidebar() {
               ))}
             </div>
           )}
+
+          {/* Input row */}
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleSend();
+            }}
+            className="flex items-center gap-2"
+          >
+            {/* Reset button — only when chat has extra messages */}
+            {messages.length > 1 && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                onClick={resetChat}
+                className="text-faint-star hover:text-starlight h-8 w-8 shrink-0"
+                title="Reset chat"
+              >
+                <RotateCcw size={14} />
+              </Button>
+            )}
+            <Input
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              placeholder="Ask a follow‑up..."
+              disabled={isChatLoading || isLoading}
+              className="flex-1 bg-void-navy border-void-navy text-starlight placeholder:text-faint-star focus:border-aurora-green text-sm"
+            />
+            <Button
+              type="submit"
+              size="icon"
+              disabled={!input.trim() || isChatLoading || isLoading}
+              className="bg-aurora-green text-void-navy hover:bg-aurora-green/90 shrink-0"
+            >
+              <Send size={14} />
+            </Button>
+          </form>
         </div>
       </TooltipProvider>
     </aside>
