@@ -94,6 +94,22 @@ export function normalizeNoaaScaleG(raw: unknown): number | null {
   return Number.isFinite(scale) ? scale : null;
 }
 
+export function normalizeNoaaScaleR(raw: unknown): number | null {
+  if (typeof raw !== "object" || raw === null) return null;
+  const obj = raw as Record<string, any>;
+  if (!obj.R || obj.R.Scale === undefined) return null;
+  const scale = parseInt(obj.R.Scale, 10);
+  return Number.isFinite(scale) ? scale : null;
+}
+
+export function normalizeNoaaScaleS(raw: unknown): number | null {
+  if (typeof raw !== "object" || raw === null) return null;
+  const obj = raw as Record<string, any>;
+  if (!obj.S || obj.S.Scale === undefined) return null;
+  const scale = parseInt(obj.S.Scale, 10);
+  return Number.isFinite(scale) ? scale : null;
+}
+
 export function normalizeFlares(raw: unknown): Flare[] {
   if (!Array.isArray(raw)) return [];
   return raw.map((item: any) => ({

@@ -14,6 +14,8 @@ import {
   normalizeSolarWind,
   normalizeAlerts,
   normalizeNoaaScaleG,
+  normalizeNoaaScaleR,
+  normalizeNoaaScaleS,
   normalizeFlares,
   normalizeCMEs,
 } from "@/lib/spacewx/normalizers";
@@ -73,6 +75,8 @@ export async function GET() {
       flares: rawFlares !== null ? normalizeFlares(rawFlares) : [],
       cmes: rawCMEs !== null ? normalizeCMEs(rawCMEs) : [],
       noaaScaleG: rawScales !== null ? normalizeNoaaScaleG(rawScales) : null,
+      noaaScaleR: rawScales !== null ? normalizeNoaaScaleR(rawScales) : null,
+      noaaScaleS: rawScales !== null ? normalizeNoaaScaleS(rawScales) : null,
       lastUpdated: new Date().toISOString(),
       warnings,
     };

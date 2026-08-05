@@ -57,13 +57,33 @@ export function convertDonkiRow(row: DonkiRow): TimelineEvent | null {
     case "CME": {
       const speed = raw.speed ? `${raw.speed} km/s` : "speed unknown";
       const note = raw.note ? ` — ${raw.note}` : "";
+
+      // Determine if Earth-directed
+      const isEarthDirected =
+        note.toLowerCase().includes("earth") ||
+        note.toLowerCase().includes("geoeffective") ||
+        (raw.halfAngle && raw.halfAngle > 120);
+
+      // Determine severity
+      let severity = "";
+      if (raw.speed) {
+        if (raw.speed > 1500) severity = "Extremely fast";
+        else if (raw.speed > 1000) severity = "Very fast";
+        else if (raw.speed > 700) severity = "Fast";
+        else if (raw.speed > 400) severity = "Moderate";
+        else severity = "Slow";
+      }
+
+      const directionText = isEarthDirected ? " (Earth-directed)" : "";
+      const severityText = severity ? ` — ${severity}` : "";
+
       return {
         id: row.id,
         source: "donki",
         type: "cme",
         time: row.event_time,
         label: `Coronal Mass Ejection (${speed})`,
-        description: `CME detected ${speed}${note}.${raw.isMostAccurate === false ? " (Preliminary analysis)" : ""}`,
+        description: `CME detected ${speed}${note}${directionText}${severityText}.${raw.isMostAccurate === false ? " (Preliminary analysis)" : ""}`,
         color: eventColor("cme"),
         raw,
       };
@@ -125,7 +145,6 @@ export function extractAlertEvents(
           lastSeen: snap.timestamp,
         });
       } else {
-        // Update lastSeen if this snapshot is later
         if (snap.timestamp > existing.lastSeen) {
           existing.lastSeen = snap.timestamp;
         }
@@ -141,21 +160,49 @@ export function extractAlertEvents(
     const snippet =
       message.length > 120 ? message.slice(0, 120) + "…" : message;
 
-    // Classify alert type
+    // Improved alert type classification
     let type: TimelineEvent["type"] = "alert";
+
+    // Check for radiation storms (S-scale)
     if (
       message.includes("Proton") ||
       message.includes("radiation") ||
       message.includes("10MeV") ||
-      message.includes("100MeV")
+      message.includes("100MeV") ||
+      message.includes("S1") ||
+      message.includes("S2") ||
+      message.includes("S3") ||
+      message.includes("S4") ||
+      message.includes("S5")
     ) {
       type = "radiation_storm";
-    } else if (
+    }
+    // Check for geomagnetic storms (G-scale)
+    else if (
       message.includes("Geomagnetic") ||
       message.includes("Kp") ||
-      message.includes("storm")
+      message.includes("K-index") ||
+      message.includes("G1") ||
+      message.includes("G2") ||
+      message.includes("G3") ||
+      message.includes("G4") ||
+      message.includes("G5") ||
+      (message.includes("storm") && message.includes("magnetic"))
     ) {
       type = "geomagnetic_storm";
+    }
+    // Check for radio blackouts (R-scale)
+    else if (
+      message.includes("Radio") ||
+      message.includes("R1") ||
+      message.includes("R2") ||
+      message.includes("R3") ||
+      message.includes("R4") ||
+      message.includes("R5") ||
+      message.includes("blackout") ||
+      message.includes("HF")
+    ) {
+      type = "alert"; // Keep as general alert but could add radio_blackout type later
     }
 
     events.push({
@@ -175,7 +222,9 @@ export function extractAlertEvents(
 
 // ── Kp spike extraction (from snapshots) ──
 
-const KP_COLLAPSE_EPSILON = 0.6; // collapse consecutive Kp within this range
+const KP_SPIKE_THRESHOLD = 4; // Only report Kp >= 4 as notable
+const KP_COLLAPSE_EPSILON = 0.3; // Tighter collapse for more precise events
+const KP_MIN_DURATION_MS = 30 * 60 * 1000; // Minimum 30 minutes to count as an event
 
 export function extractKpSpikeEvents(
   snapshots: SpaceWeatherSnapshot[],
@@ -193,37 +242,65 @@ export function extractKpSpikeEvents(
   if (valid.length === 0) return [];
 
   const events: TimelineEvent[] = [];
-  let currentStart = valid[0].timestamp;
-  let currentKp = valid[0].kp as number;
-  let currentEnd = currentStart;
+  let currentStart: string | null = null;
+  let currentKp: number | null = null;
+  let currentEnd: string | null = null;
+  let maxKpInWindow = 0;
 
-  for (let i = 1; i < valid.length; i++) {
+  for (let i = 0; i < valid.length; i++) {
     const kp = valid[i].kp as number;
     const ts = valid[i].timestamp;
 
-    if (Math.abs(kp - currentKp) <= KP_COLLAPSE_EPSILON) {
-      // Same Kp window, extend end time
-      currentEnd = ts;
-    } else {
-      // Kp changed: emit previous event if Kp ≥ 4 (notable)
-      if (currentKp >= 4) {
-        events.push(createKpEvent(currentStart, currentEnd, currentKp));
-      }
+    // Start of a potential event
+    if (kp >= KP_SPIKE_THRESHOLD && currentStart === null) {
       currentStart = ts;
       currentKp = kp;
       currentEnd = ts;
+      maxKpInWindow = kp;
+    }
+    // Continuing an event (Kp within collapse epsilon of the current window's reference Kp)
+    else if (
+      currentStart !== null &&
+      currentKp !== null &&
+      Math.abs(kp - currentKp) <= KP_COLLAPSE_EPSILON
+    ) {
+      currentEnd = ts;
+      maxKpInWindow = Math.max(maxKpInWindow, kp);
+    }
+    // Kp changed significantly or dropped below threshold – emit event if duration met
+    else {
+      if (currentStart !== null && currentEnd !== null) {
+        const durationMs =
+          new Date(currentEnd).getTime() - new Date(currentStart).getTime();
+        if (durationMs >= KP_MIN_DURATION_MS) {
+          events.push(createKpEvent(currentStart, currentEnd, maxKpInWindow));
+        }
+      }
+      // Reset or start new window
+      currentStart = kp >= KP_SPIKE_THRESHOLD ? ts : null;
+      currentKp = kp >= KP_SPIKE_THRESHOLD ? kp : null;
+      currentEnd = currentStart;
+      maxKpInWindow = kp;
     }
   }
 
-  // Emit last event
-  if (currentKp >= 4) {
-    events.push(createKpEvent(currentStart, currentEnd, currentKp));
+  // Emit final event if still active
+  if (currentStart !== null && currentEnd !== null) {
+    const durationMs =
+      new Date(currentEnd).getTime() - new Date(currentStart).getTime();
+    if (durationMs >= KP_MIN_DURATION_MS) {
+      events.push(createKpEvent(currentStart, currentEnd, maxKpInWindow));
+    }
   }
 
   return events;
 }
 
-function createKpEvent(start: string, end: string, kp: number): TimelineEvent {
+function createKpEvent(
+  start: string,
+  end: string,
+  maxKp: number,
+): TimelineEvent {
   const durationMs = new Date(end).getTime() - new Date(start).getTime();
   const durationHours = Math.round(durationMs / (1000 * 60 * 60));
   const durationText = durationHours > 0 ? ` (lasted ~${durationHours}h)` : "";
@@ -233,9 +310,9 @@ function createKpEvent(start: string, end: string, kp: number): TimelineEvent {
     source: "supabase",
     type: "kp_spike",
     time: start,
-    label: `Kp ${kp.toFixed(1)}${durationText}`,
-    description: `Kp index reached ${kp.toFixed(1)} starting ${new Date(start).toLocaleString("en-US")}${durationText}.`,
+    label: `Kp reached ${maxKp.toFixed(1)}${durationText}`,
+    description: `Kp index peaked at ${maxKp.toFixed(1)} starting ${new Date(start).toLocaleString("en-US")}${durationText}.`,
     color: eventColor("kp_spike"),
-    raw: { kp, start, end },
+    raw: { kp: maxKp, start, end },
   };
 }

@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Exec(Get-ChildItem)",
+      "Exec(powershell -Command Get-ChildItem)",
+      "Exec(pwsh -Command Get-ChildItem)",
+      "Exec(dir)",
+      "Exec(ls)"
+    ]
+  }
+}

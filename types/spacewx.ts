@@ -49,6 +49,10 @@ export interface SpaceWeatherData {
   cmes: CME[];
   /** NOAA G-scale (1–5) – null if unavailable */
   noaaScaleG: number | null;
+  /** NOAA R-scale (radio blackout, 1–5) – null if unavailable */
+  noaaScaleR: number | null;
+  /** NOAA S-scale (radiation storm, 1–5) – null if unavailable */
+  noaaScaleS: number | null;
   /** ISO timestamp of when this object was assembled */
   lastUpdated: string;
   /** Human-readable warnings about missing data sources */

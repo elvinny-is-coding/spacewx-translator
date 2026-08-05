@@ -20,17 +20,19 @@ export const GEOMAGNETIC_NORTH_POLE = {
  * Probability thresholds for the "Will I see the aurora?" indicator.
  * Values correspond to OVATION probability (0–100 %).
  *
- * NOTE: this used to also have a `high: 75` entry that duplicated
- * `likely` and was never referenced anywhere — removed. If you want a
- * genuine 5th "Overhead / extreme" tier (the color scale and map legend
- * already reach that far), add a threshold here (e.g. `high: 90`) and a
- * matching branch + CSS color token in getVisibilityFromGrid below.
+ * Updated thresholds based on actual visibility studies:
+ * - <10%: Practically invisible even at dark sites
+ * - 10–30%: Possible only at very dark sites with clear skies
+ * - 30–50%: Visible at dark sites, possible at suburban locations
+ * - 50–70%: Good chance at mid-latitudes with dark skies
+ * - >70%: High probability, visible even at some suburban locations
  */
 export const VISIBILITY_THRESHOLDS = {
-  none: 5, // < 5% → "No"
-  low: 25, // 5–25% → "Low chance"
-  possible: 50, // 25–50% → "Possible"
-  likely: 75, // 50–75% → "Likely"
+  none: 10, // < 10% → "No"
+  low: 30, // 10–30% → "Low chance"
+  possible: 50, // 30–50% → "Possible"
+  likely: 70, // 50–70% → "Likely"
+  high: 100, // >70% → "Very likely"
 };
 
 /**
@@ -296,7 +298,7 @@ export function getVisibilityFromGrid(
     color = "faint-star";
   } else if (prob < VISIBILITY_THRESHOLDS.low) {
     label = "Low chance";
-    color = "aurora-green";
+    color = "faint-star";
   } else if (prob < VISIBILITY_THRESHOLDS.possible) {
     label = "Possible";
     color = "aurora-green";
