@@ -56,7 +56,7 @@ export default function CalendarExport({
   // No location selected
   if (!selectedLocation) {
     return (
-      <Card className="border-none bg-deep-indigo">
+      <Card className="border border-void-navy bg-deep-indigo shadow-sm">
         <CardContent className="flex items-center gap-3 p-4">
           <MapPin size={18} className="text-faint-star" />
           <p className="text-sm text-faint-star">
@@ -71,7 +71,7 @@ export default function CalendarExport({
   // Location selected but forecast unavailable
   if (!kpForecast || kpForecast.length === 0) {
     return (
-      <Card className="border-none bg-deep-indigo">
+      <Card className="border border-void-navy bg-deep-indigo shadow-sm">
         <CardContent className="flex items-center gap-3 p-4">
           <MapPin size={18} className="text-faint-star" />
           <p className="text-sm text-faint-star">
@@ -85,7 +85,7 @@ export default function CalendarExport({
   // Location selected, forecast available, but no events
   if (eventCount === 0) {
     return (
-      <Card className="border-none bg-deep-indigo">
+      <Card className="border border-void-navy bg-deep-indigo shadow-sm">
         <CardContent className="flex items-center gap-3 p-4">
           <CalendarPlus size={18} className="text-faint-star" />
           <p className="text-sm text-faint-star">
@@ -99,7 +99,7 @@ export default function CalendarExport({
 
   // Events available
   return (
-    <Card className="border-none bg-deep-indigo">
+    <Card className="border border-void-navy bg-deep-indigo shadow-sm">
       <CardContent className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-4">
         <div className="flex items-center gap-3">
           <CalendarPlus size={18} className="text-aurora-green" />

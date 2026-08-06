@@ -9,6 +9,7 @@ import {
 import "./globals.css";
 import { cn } from "@/lib/utils";
 import ClientLayout from "@/components/layout/layout-client";
+import { ThemeProvider } from "next-themes";
 
 const geist = Geist({ subsets: ["latin"], variable: "--font-sans" });
 
@@ -51,13 +52,13 @@ export default function RootLayout({
     <html
       lang="en"
       className={cn(
-        "dark",
         spaceGrotesk.variable,
         ibmPlexSans.variable,
         ibmPlexMono.variable,
         "font-sans",
         geist.variable,
       )}
+      suppressHydrationWarning
     >
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -67,8 +68,10 @@ export default function RootLayout({
           crossOrigin="anonymous"
         />
       </head>
-      <body className="min-h-screen bg-void-navy font-body text-starlight antialiased">
-        <ClientLayout>{children}</ClientLayout>
+      <body className="min-h-screen bg-void-navy font-body text-starlight antialiased" suppressHydrationWarning>
+        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
+          <ClientLayout>{children}</ClientLayout>
+        </ThemeProvider>
       </body>
     </html>
   );

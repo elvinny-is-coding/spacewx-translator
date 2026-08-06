@@ -31,7 +31,7 @@ function AuroraGauge({ kp }: AuroraGaugeProps) {
           isNoData
             ? undefined
             : ({
-                filter: `drop-shadow(0 0 12px color-mix(in srgb, var(--color-${color}) 60%, transparent))`,
+                filter: `drop-shadow(0 4px 6px rgba(0, 0, 0, 0.1))`,
               } as React.CSSProperties)
         }
         aria-label={`Current Kp index: ${displayKp}. Severity: ${label}`}

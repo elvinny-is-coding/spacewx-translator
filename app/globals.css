@@ -5,16 +5,37 @@
 /* Dark mode variant (class-based) */
 @custom-variant dark (&:where(.dark, .dark *));
 
+/* Light/dark theme color variables */
+:root {
+  --void-navy: #f4f7fb;
+  --deep-indigo: #ffffff;
+  --starlight: #111827;
+  --faint-star: #64748b;
+  --aurora-green: #047857;
+  --aurora-violet: #7c3aed;
+  --solar-amber: #d97706;
+}
+
+.dark {
+  --void-navy: #0B1120;
+  --deep-indigo: #131B33;
+  --starlight: #E7ECF5;
+  --faint-star: #8A93A8;
+  --aurora-green: #3ECF8E;
+  --aurora-violet: #B18CFF;
+  --solar-amber: #F5A623;
+}
+
 /* Design tokens & animations */
 @theme {
   /* Colors */
-  --color-void-navy: #0b1120;
-  --color-deep-indigo: #131b33;
-  --color-aurora-green: #3ecf8e;
-  --color-aurora-violet: #b18cff;
-  --color-solar-amber: #f5a623;
-  --color-starlight: #e7ecf5;
-  --color-faint-star: #8a93a8;
+  --color-void-navy: var(--void-navy);
+  --color-deep-indigo: var(--deep-indigo);
+  --color-aurora-green: var(--aurora-green);
+  --color-aurora-violet: var(--aurora-violet);
+  --color-solar-amber: var(--solar-amber);
+  --color-starlight: var(--starlight);
+  --color-faint-star: var(--faint-star);
 
   /* Font Families */
   --font-display: var(--font-space-grotesk), sans-serif;
@@ -162,4 +183,9 @@
   html {
     @apply font-sans;
   }
+}
+
+/* Dark mode neon glow for aurora gauge */
+.dark .animate-breathe {
+  filter: drop-shadow(0 0 12px color-mix(in srgb, var(--color-aurora-green) 60%, transparent));
 }

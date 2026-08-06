@@ -92,14 +92,19 @@ export default function AiSidebar() {
       try {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          setMessages(parsed);
-          return;
+          // Check if the saved summary matches the current summary
+          // If not, it means the audience changed and we should use the new summary
+          if (parsed[0]?.content === summary) {
+            setMessages(parsed);
+            return;
+          }
         }
       } catch {
         /* ignore */
       }
     }
 
+    // Always use the current summary from the API/Supabase
     setMessages([{ role: "assistant", content: summary }]);
   }, [summary, isLoading, audience]);
 
@@ -347,7 +352,7 @@ export default function AiSidebar() {
               onKeyDown={handleKeyDown}
               placeholder="Ask Kairo... (Shift+Enter for new line)"
               disabled={isChatLoading || isLoading}
-              className="flex-1 bg-void-navy border-void-navy text-starlight placeholder:text-faint-star focus:border-aurora-green text-sm"
+              className="flex-1 bg-void-navy border-deep-indigo text-starlight placeholder:text-faint-star focus:border-aurora-green text-sm"
               aria-label="Chat input"
             />
             <Button

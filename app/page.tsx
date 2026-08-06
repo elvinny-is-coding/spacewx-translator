@@ -51,7 +51,7 @@ export default function OverviewPage() {
 
 function StatCard({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-xl bg-deep-indigo border border-void-navy p-4 text-center">
+    <div className="rounded-xl bg-deep-indigo border border-void-navy shadow-sm p-4 text-center">
       <p className="text-xs text-faint-star uppercase tracking-wider mb-1">
         {label}
       </p>

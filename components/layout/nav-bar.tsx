@@ -11,6 +11,7 @@ import {
   Calendar,
   Bell,
 } from "lucide-react";
+import ThemeToggle from "@/components/theme-toggle";
 
 const NAV_ITEMS = [
   {
@@ -56,6 +57,15 @@ export default function NavBar() {
             width={32}
             height={32}
             priority
+            className="dark:hidden"
+          />
+          <Image
+            src="/logo-white.svg"
+            alt="Aura logo"
+            width={32}
+            height={32}
+            priority
+            className="hidden dark:block"
           />
           <span className="font-display text-lg font-semibold">Aura</span>
         </Link>
@@ -86,6 +96,7 @@ export default function NavBar() {
               </Link>
             );
           })}
+          <ThemeToggle />
         </div>
       </div>
     </nav>

@@ -1,0 +1,21 @@
+"use client";
+
+import { useTheme } from "next-themes";
+import { Moon, Sun } from "lucide-react";
+import { Button } from "@/components/ui/button";
+
+export default function ThemeToggle() {
+  const { theme, setTheme } = useTheme();
+
+  return (
+    <Button
+      variant="ghost"
+      size="icon"
+      onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+      className="text-faint-star hover:text-starlight h-8 w-8"
+      title="Toggle theme"
+    >
+      {theme === "dark" || theme === "system" ? <Sun size={16} /> : <Moon size={16} />}
+    </Button>
+  );
+}

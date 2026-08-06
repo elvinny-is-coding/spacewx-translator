@@ -14,6 +14,7 @@ import {
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { useOvation } from "@/hooks/use-ovation";
+import { useTheme } from "next-themes";
 import {
   getVisibilityFromGrid,
   computeOvalBoundary,
@@ -25,8 +26,10 @@ import { Button } from "@/components/ui/button";
 import { Crosshair, Info } from "lucide-react";
 
 // ── Constants ──
-const TILE_URL =
+const DARK_TILE_URL =
   "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png";
+const LIGHT_TILE_URL =
+  "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png";
 const ATTRIBUTION =
   '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/">CARTO</a>';
 
@@ -35,20 +38,6 @@ const BUFFER_H = 160;
 const OVERLAY_BLUR_PX = 1.5;
 
 const WORLD_BOUNDS = L.latLngBounds([-90, -180], [90, 180]);
-
-const userIcon = L.divIcon({
-  className: "",
-  html: `<div style="width:14px;height:14px;background:#3ECF8E;border-radius:50%;box-shadow:0 0 10px #3ECF8E;border:2px solid #fff;"></div>`,
-  iconSize: [14, 14],
-  iconAnchor: [7, 7],
-});
-
-const tapIcon = L.divIcon({
-  className: "",
-  html: `<div style="width:12px;height:12px;background:#F5A623;border-radius:50%;box-shadow:0 0 8px #F5A623;border:2px solid #fff;"></div>`,
-  iconSize: [12, 12],
-  iconAnchor: [6, 6],
-});
 
 const COLOR_STOPS: { p: number; rgb: [number, number, number]; a: number }[] = [
   { p: 0, rgb: [11, 17, 32], a: 0 },
@@ -264,7 +253,7 @@ function VisibilityPanel({
   hasInteracted: boolean;
 }) {
   return (
-    <Card className="absolute bottom-4 left-4 z-[1000] w-56 border-none bg-deep-indigo/90 backdrop-blur-sm shadow-lg transition-all duration-300">
+    <Card className="absolute bottom-4 left-4 z-[1000] w-56 border border-void-navy bg-deep-indigo/90 backdrop-blur-sm shadow-lg transition-all duration-300">
       <CardContent className="p-3 space-y-1 relative">
         <p className="text-xs text-faint-star truncate pr-4">
           {locationName || "Selected location"}
@@ -291,7 +280,7 @@ function VisibilityPanel({
 // ── Map Legend ──
 function MapLegend() {
   return (
-    <Card className="absolute bottom-4 right-4 z-[1000] w-[280px] border-none bg-deep-indigo/90 backdrop-blur-sm shadow-lg hidden sm:block">
+    <Card className="absolute bottom-4 right-4 z-[1000] w-[280px] border border-void-navy bg-deep-indigo/90 backdrop-blur-sm shadow-lg hidden sm:block">
       <CardContent className="p-3 space-y-3">
         <div className="flex items-center justify-between">
           <p className="text-xs font-semibold text-starlight flex items-center gap-1.5">
@@ -311,7 +300,7 @@ function MapLegend() {
 
         <div className="flex justify-between text-faint-star/90 text-left">
           <div className="flex flex-col gap-0.5">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-[#3ECF8E]">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-[#059669] dark:text-[#3ECF8E]">
               Faint
             </span>
             <span className="text-[9px] leading-tight text-faint-star/70">
@@ -319,7 +308,7 @@ function MapLegend() {
             </span>
           </div>
           <div className="flex flex-col items-center gap-0.5">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-[#7C5CFF]">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-[#7c3aed] dark:text-[#7C5CFF]">
               Active
             </span>
             <span className="text-[9px] leading-tight text-faint-star/70">
@@ -327,7 +316,7 @@ function MapLegend() {
             </span>
           </div>
           <div className="flex flex-col items-end gap-0.5 text-right">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-[#FF4646]">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-[#dc2626] dark:text-[#FF4646]">
               Extreme
             </span>
             <span className="text-[9px] leading-tight text-faint-star/70">
@@ -352,6 +341,23 @@ export default function AuroraMap({
   ovalKp,
 }: AuroraMapProps) {
   const { grid, isLoading, error } = useOvation();
+  const { theme } = useTheme();
+  const isDark = theme === "dark" || theme === "system";
+
+  // Theme-aware marker icons
+  const userIcon = useMemo(() => L.divIcon({
+    className: "",
+    html: `<div style="width:14px;height:14px;background:${isDark ? '#3ECF8E' : '#047857'};border-radius:50%;box-shadow:0 0 10px ${isDark ? '#3ECF8E' : '#047857'};border:2px solid #fff;"></div>`,
+    iconSize: [14, 14],
+    iconAnchor: [7, 7],
+  }), [isDark]);
+
+  const tapIcon = useMemo(() => L.divIcon({
+    className: "",
+    html: `<div style="width:12px;height:12px;background:#F5A623;border-radius:50%;box-shadow:0 0 8px #F5A623;border:2px solid #fff;"></div>`,
+    iconSize: [12, 12],
+    iconAnchor: [6, 6],
+  }), []);
 
   const [userLocation, setUserLocation] = useState<{
     lat: number;
@@ -503,7 +509,7 @@ export default function AuroraMap({
   }, [ovalKp]);
 
   return (
-    <Card className="border-none bg-deep-indigo overflow-hidden">
+    <Card className="border border-void-navy bg-deep-indigo overflow-hidden shadow-sm dark:shadow-lg">
       <CardContent className="p-0 relative" style={{ height: "500px" }}>
         {isLoading && (
           <div className="absolute inset-0 z-[1000] flex items-center justify-center bg-deep-indigo/70 text-starlight text-sm">
@@ -521,12 +527,16 @@ export default function AuroraMap({
           zoom={2}
           minZoom={2}
           maxZoom={8}
-          style={{ height: "100%", width: "100%", background: "#0B1120" }}
+          style={{ height: "100%", width: "100%", background: isDark ? "#0B1120" : "#e5e7eb" }}
           maxBounds={WORLD_BOUNDS}
           maxBoundsViscosity={1.0}
           zoomControl={false}
         >
-          <TileLayer url={TILE_URL} attribution={ATTRIBUTION} noWrap />
+          <TileLayer
+            url={isDark ? DARK_TILE_URL : LIGHT_TILE_URL}
+            attribution={ATTRIBUTION}
+            noWrap
+          />
 
           {grid && (
             <OvationCanvasOverlay
