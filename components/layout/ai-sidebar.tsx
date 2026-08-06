@@ -6,6 +6,7 @@ import { useSidebar } from "@/hooks/use-sidebar";
 import AudienceToggle from "@/components/audience-toggle";
 import MarkdownWithGlossary from "@/components/markdown-with-glossary";
 import TechnicalBrief from "@/components/technical-brief";
+import RiskScorecard from "@/components/risk-scorecard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -92,8 +93,6 @@ export default function AiSidebar() {
       try {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          // Check if the saved summary matches the current summary
-          // If not, it means the audience changed and we should use the new summary
           if (parsed[0]?.content === summary) {
             setMessages(parsed);
             return;
@@ -104,7 +103,6 @@ export default function AiSidebar() {
       }
     }
 
-    // Always use the current summary from the API/Supabase
     setMessages([{ role: "assistant", content: summary }]);
   }, [summary, isLoading, audience]);
 
@@ -129,7 +127,6 @@ export default function AiSidebar() {
       setMessages([]);
     }
     setChatError(null);
-    // Return focus to the input after reset
     inputRef.current?.focus();
   }, [audience, summary]);
 
@@ -241,7 +238,12 @@ export default function AiSidebar() {
             </div>
           )}
 
-          {isTechnical && <TechnicalBrief data={data} />}
+          {isTechnical && (
+            <>
+              <TechnicalBrief data={data} />
+              <RiskScorecard data={data} />
+            </>
+          )}
 
           {isLoading && (
             <div className="space-y-3">
