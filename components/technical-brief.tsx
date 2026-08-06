@@ -3,6 +3,7 @@
 
 import type { SpaceWeatherData } from "@/types/spacewx";
 import { classifyFlare } from "@/lib/flare-utils";
+import { kpToGScale } from "@/config/constants";
 
 interface TechnicalBriefProps {
   data: SpaceWeatherData;
@@ -48,6 +49,8 @@ function hasProtonStorm(alerts: SpaceWeatherData["alerts"]): boolean {
 export default function TechnicalBrief({ data }: TechnicalBriefProps) {
   const windCategory = getSolarWindCategory(data.solarWind?.speed ?? null);
   const bzCategory = getBzCategory(data.solarWind?.bz ?? null);
+  const gScaleDisplay =
+    data.noaaScaleG !== null ? `G${data.noaaScaleG}` : kpToGScale(data.kp);
 
   return (
     <div className="overflow-x-auto">
@@ -85,13 +88,13 @@ export default function TechnicalBrief({ data }: TechnicalBriefProps) {
           </tr>
           <tr>
             <td className="py-2 pr-4 text-faint-star">G‑scale (Geomagnetic)</td>
-            <td className="py-2 text-starlight font-mono">
-              {data.noaaScaleG !== null ? `G${data.noaaScaleG}` : "—"}
-            </td>
+            <td className="py-2 text-starlight font-mono">{gScaleDisplay}</td>
             <td className="py-2 text-starlight">
               {data.noaaScaleG !== null && data.noaaScaleG >= 1
                 ? "Active"
-                : "Quiet"}
+                : data.kp !== null && data.kp >= 5
+                  ? "Active"
+                  : "Quiet"}
             </td>
           </tr>
           <tr>
