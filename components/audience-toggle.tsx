@@ -14,7 +14,7 @@ const AUDIENCES: {
 }[] = [
   { value: "general", label: "Public" },
   { value: "educator", label: "Educator" },
-  { value: "technical", label: "Technical" },
+  { value: "technical", label: "Operations" },
 ];
 
 export default function AudienceToggle({

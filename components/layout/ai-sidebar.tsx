@@ -181,12 +181,17 @@ export default function AiSidebar() {
       )}
     >
       <TooltipProvider>
-        {/* Header — no buttons */}
+        {/* Header — Kairo branding */}
         <div className="px-4 py-3 border-b border-void-navy">
           <h3 className="font-display text-base text-starlight flex items-center gap-2">
-            <Sparkles size={16} className="text-aurora-green" />
-            AI Assistant
+            <span className="w-5 h-5 rounded-full bg-gradient-to-br from-aurora-green to-aurora-violet flex items-center justify-center">
+              <Sparkles size={10} className="text-void-navy" />
+            </span>
+            Kairo
           </h3>
+          <p className="text-xs text-faint-star mt-0.5">
+            Your AI space weather guide
+          </p>
         </div>
 
         {/* Audience toggle */}
@@ -196,6 +201,20 @@ export default function AiSidebar() {
 
         {/* Content area */}
         <div className="flex-1 overflow-y-auto px-4 py-3 space-y-4">
+          {/* Welcome message — only when no messages and not loading */}
+          {messages.length === 0 && !isLoading && !error && !isTechnical && (
+            <div className="text-center py-6">
+              <div className="w-10 h-10 mx-auto rounded-full bg-gradient-to-br from-aurora-green to-aurora-violet flex items-center justify-center mb-3">
+                <Sparkles size={18} className="text-void-navy" />
+              </div>
+              <p className="text-sm text-starlight mb-1">Hi, I&rsquo;m Kairo</p>
+              <p className="text-xs text-faint-star max-w-[240px] mx-auto">
+                Ask me anything about space weather, aurora visibility, or solar
+                activity.
+              </p>
+            </div>
+          )}
+
           {isTechnical && <TechnicalBrief data={data} />}
 
           {isLoading && (
@@ -299,7 +318,7 @@ export default function AiSidebar() {
             <Input
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="Ask a follow‑up..."
+              placeholder="Ask Kairo..."
               disabled={isChatLoading || isLoading}
               className="flex-1 bg-void-navy border-void-navy text-starlight placeholder:text-faint-star focus:border-aurora-green text-sm"
             />

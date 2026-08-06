@@ -15,7 +15,6 @@ export default function StatusBar({
 }: StatusBarProps) {
   const { label, color } = severityFromKp(kp);
 
-  // Format the last updated time as a short string
   const updatedDate = new Date(lastUpdated);
   const timeString = updatedDate.toLocaleTimeString("en-US", {
     hour: "2-digit",
@@ -26,8 +25,9 @@ export default function StatusBar({
   return (
     <div className="flex flex-wrap items-center justify-between gap-4">
       <div className="flex items-center gap-3">
+        <img src="/logo-black.svg" alt="Aura logo" className="h-6 w-6" />
         <h1 className="font-display text-lg text-starlight tracking-wide">
-          SPACE WX
+          AURA
         </h1>
         <Badge
           className="border-none px-3 py-1 text-sm font-medium"

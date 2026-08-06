@@ -43,9 +43,8 @@ export default function ActiveAlerts({ alerts }: ActiveAlertsProps) {
             ACTIVE ALERTS
           </h3>
           <p className="mb-4 text-sm text-faint-star">
-            Official notices from NOAA when space weather events — like solar
-            flares, radiation storms, or geomagnetic disturbances — could affect
-            satellites, power grids, or radio communications.
+            NOAA alerts filtered by Kairo — click any alert for the full
+            message, or open the list to browse all.
           </p>
           <ul className="space-y-4">
             {alerts.slice(0, 5).map((alert, idx) => {

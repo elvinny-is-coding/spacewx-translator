@@ -27,12 +27,11 @@ export default function OverviewPage() {
 
       <section className="space-y-2 text-center">
         <h2 className="font-display text-2xl text-starlight">
-          Current Space Weather
+          Solar Activity at a Glance
         </h2>
         <p className="text-sm text-faint-star">
-          The Kp index shows how disturbed Earth’s magnetic field is right now.
-          Higher values mean brighter aurora and possible effects on satellites,
-          power grids, and radio signals.
+          Real‑time Kp index, solar wind conditions, and active alerts —
+          analysed by Kairo, your AI space weather guide.
         </p>
       </section>
 

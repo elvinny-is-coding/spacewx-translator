@@ -33,9 +33,13 @@ const ibmPlexMono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Space Weather Translator",
+  title: "Aura – AI Space Weather Intelligence",
   description:
-    "AI‑powered space weather insights for the public, educators, and satellite operators.",
+    "Real‑time aurora forecasts, solar storm tracking, and space weather insights powered by AI.",
+  icons: {
+    icon: "/logo-black.svg",
+    apple: "/logo-black.svg",
+  },
 };
 
 export default function RootLayout({

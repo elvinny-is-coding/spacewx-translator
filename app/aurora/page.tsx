@@ -14,8 +14,8 @@ export default function AuroraPage() {
           Where Can You See the Aurora?
         </h2>
         <p className="text-sm text-faint-star">
-          Tap anywhere on the map or use your location to check visibility right
-          now. Download upcoming aurora events to your calendar.
+          Tap anywhere on the map or use your location to see Kairo's visibility
+          prediction right now. Add upcoming windows to your calendar.
         </p>
       </div>
       <ClientMapSection kpForecast={data.kpForecast} />

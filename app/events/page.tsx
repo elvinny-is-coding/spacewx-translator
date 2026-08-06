@@ -12,12 +12,10 @@ export default function EventsPage() {
     <div className="space-y-8">
       <section className="space-y-4">
         <div className="space-y-2">
-          <h2 className="font-display text-2xl text-starlight">
-            Event Timeline
-          </h2>
+          <h2 className="font-display text-2xl text-starlight">Solar Events</h2>
           <p className="text-sm text-faint-star">
-            A chronological view of solar flares, CMEs, geomagnetic storms,
-            radiation storms, and Kp spikes — across the time range you choose.
+            A timeline of solar flares, CMEs, geomagnetic storms, and Kp spikes
+            curated by Kairo.
           </p>
         </div>
         <EventTimeline />
@@ -29,8 +27,8 @@ export default function EventsPage() {
             Active Alerts
           </h2>
           <p className="text-sm text-faint-star">
-            Official notices from NOAA when space weather events could affect
-            satellites, power grids, or radio communications.
+            Official NOAA alerts — Kairo helps you separate the signal from the
+            noise.
           </p>
         </div>
         <ActiveAlerts alerts={data.alerts} />

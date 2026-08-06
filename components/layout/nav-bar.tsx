@@ -27,9 +27,10 @@ export default function NavBar() {
       <div className="mx-auto max-w-6xl flex items-center justify-between px-4 h-14">
         <Link
           href="/"
-          className="font-display text-lg text-starlight hover:text-aurora-green transition-colors mr-6"
+          className="flex items-center gap-2.5 text-starlight hover:text-aurora-green transition-colors mr-6"
         >
-          Space WX
+          <img src="/logo-black.svg" alt="Aura logo" className="h-8 w-8" />
+          <span className="font-display text-lg font-semibold">Aura</span>
         </Link>
 
         <div className="flex items-center gap-1 overflow-x-auto">

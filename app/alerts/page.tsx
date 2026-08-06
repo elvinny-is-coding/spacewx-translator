@@ -22,11 +22,11 @@ export default function AlertsPage() {
     <div className="space-y-8">
       <div className="space-y-2">
         <h2 className="font-display text-2xl text-starlight">
-          Custom Alert Thresholds
+          Personal Alert Thresholds
         </h2>
         <p className="text-sm text-faint-star">
-          Set personal thresholds for Kp index, solar wind speed, and Bz. Get
-          notified when current conditions cross your defined limits.
+          Set your own limits for Kp, solar wind speed, and Bz. Kairo monitors
+          conditions and surfaces a banner when your thresholds are breached.
         </p>
       </div>
 
