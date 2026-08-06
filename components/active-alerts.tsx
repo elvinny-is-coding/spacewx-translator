@@ -20,7 +20,11 @@ export default function ActiveAlerts({ alerts }: ActiveAlertsProps) {
     return (
       <Card className="border-none bg-deep-indigo">
         <CardContent className="flex items-center gap-3 p-6">
-          <CheckCircle size={20} className="text-aurora-green" />
+          <CheckCircle
+            size={20}
+            className="text-aurora-green"
+            aria-hidden="true"
+          />
           <div>
             <p className="text-sm font-medium text-starlight">
               No active alerts
@@ -46,21 +50,31 @@ export default function ActiveAlerts({ alerts }: ActiveAlertsProps) {
             NOAA alerts filtered by Kairo — click any alert for the full
             message, or open the list to browse all.
           </p>
-          <ul className="space-y-4">
+          <ul className="space-y-4" role="list" aria-label="Active NOAA alerts">
             {alerts.slice(0, 5).map((alert, idx) => {
               const needsTruncation = alert.message.length > 200;
 
               return (
                 <li
                   key={`${alert.id}-${idx}`}
-                  className="rounded-lg border border-void-navy bg-void-navy/50 p-4 cursor-pointer hover:bg-void-navy transition-colors"
+                  className="rounded-lg border border-void-navy bg-void-navy/50 p-4 cursor-pointer hover:bg-void-navy transition-colors min-h-[72px] touch-manipulation"
                   onClick={() => setSelectedAlert(alert)}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      setSelectedAlert(alert);
+                    }
+                  }}
+                  aria-label={`Alert: ${alert.message.slice(0, 100)}...`}
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex items-start gap-2">
                       <AlertTriangle
                         size={16}
                         className="mt-0.5 shrink-0 text-solar-amber"
+                        aria-hidden="true"
                       />
                       <div className="flex-1 min-w-0">
                         <p className="text-sm leading-relaxed text-starlight">
@@ -84,10 +98,11 @@ export default function ActiveAlerts({ alerts }: ActiveAlertsProps) {
                 variant="outline"
                 size="sm"
                 onClick={() => setModalOpen(true)}
-                className="border-deep-indigo text-faint-star hover:bg-deep-indigo/50 hover:text-starlight"
+                className="border-deep-indigo text-faint-star hover:bg-deep-indigo/50 hover:text-starlight min-h-[44px]"
+                aria-label={`View all ${alerts.length} alerts`}
               >
                 View all {alerts.length} alerts
-                <ChevronRight size={14} className="ml-1" />
+                <ChevronRight size={14} className="ml-1" aria-hidden="true" />
               </Button>
             </div>
           )}

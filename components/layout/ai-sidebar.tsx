@@ -78,6 +78,7 @@ export default function AiSidebar() {
   const [input, setInput] = useState("");
   const [isChatLoading, setIsChatLoading] = useState(false);
   const [chatError, setChatError] = useState<string | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const isTechnical = audience === "technical";
@@ -123,6 +124,8 @@ export default function AiSidebar() {
       setMessages([]);
     }
     setChatError(null);
+    // Return focus to the input after reset
+    inputRef.current?.focus();
   }, [audience, summary]);
 
   // Send a question – optionally with an explicit string (for chip clicks)
@@ -171,8 +174,21 @@ export default function AiSidebar() {
     [input, isChatLoading, messages, data, audience],
   );
 
+  // Keyboard handler: Enter sends, Shift+Enter inserts newline
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        handleSend();
+      }
+    },
+    [handleSend],
+  );
+
   return (
     <aside
+      id="ai-sidebar"
+      aria-label="AI Assistant Sidebar"
       className={cn(
         "fixed top-14 right-0 z-40 h-[calc(100vh-3.5rem)] w-full sm:w-[380px] border-l border-void-navy bg-deep-indigo flex flex-col transition-transform duration-300",
         open ? "translate-x-0" : "translate-x-full",
@@ -200,7 +216,12 @@ export default function AiSidebar() {
         </div>
 
         {/* Content area */}
-        <div className="flex-1 overflow-y-auto px-4 py-3 space-y-4">
+        <div
+          className="flex-1 overflow-y-auto px-4 py-3 space-y-4"
+          role="log"
+          aria-live="polite"
+          aria-label="Chat messages"
+        >
           {/* Welcome message — only when no messages and not loading */}
           {messages.length === 0 && !isLoading && !error && !isTechnical && (
             <div className="text-center py-6">
@@ -256,7 +277,11 @@ export default function AiSidebar() {
             ))}
 
           {isChatLoading && (
-            <div className="flex justify-start">
+            <div
+              className="flex justify-start"
+              role="status"
+              aria-label="Kairo is thinking"
+            >
               <div className="bg-void-navy rounded-xl px-4 py-3 border border-deep-indigo">
                 <Loader2 size={18} className="animate-spin text-aurora-green" />
               </div>
@@ -316,11 +341,14 @@ export default function AiSidebar() {
               </Button>
             )}
             <Input
+              ref={inputRef}
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="Ask Kairo..."
+              onKeyDown={handleKeyDown}
+              placeholder="Ask Kairo... (Shift+Enter for new line)"
               disabled={isChatLoading || isLoading}
               className="flex-1 bg-void-navy border-void-navy text-starlight placeholder:text-faint-star focus:border-aurora-green text-sm"
+              aria-label="Chat input"
             />
             <Button
               type="submit"

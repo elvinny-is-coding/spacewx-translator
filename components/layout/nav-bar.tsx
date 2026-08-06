@@ -12,28 +12,48 @@ import {
 } from "lucide-react";
 
 const NAV_ITEMS = [
-  { href: "/", label: "Overview", icon: LayoutDashboard },
-  { href: "/aurora", label: "Aurora", icon: MapPin },
-  { href: "/forecast", label: "Forecast", icon: TrendingUp },
-  { href: "/events", label: "Events", icon: Calendar },
-  { href: "/alerts", label: "Alerts", icon: Bell },
+  {
+    href: "/",
+    label: "Overview",
+    icon: LayoutDashboard,
+    ariaLabel: "Overview Dashboard",
+  },
+  { href: "/aurora", label: "Aurora", icon: MapPin, ariaLabel: "Aurora Map" },
+  {
+    href: "/forecast",
+    label: "Forecast",
+    icon: TrendingUp,
+    ariaLabel: "Forecast Charts",
+  },
+  {
+    href: "/events",
+    label: "Events",
+    icon: Calendar,
+    ariaLabel: "Event Timeline",
+  },
+  { href: "/alerts", label: "Alerts", icon: Bell, ariaLabel: "Active Alerts" },
 ];
 
 export default function NavBar() {
   const pathname = usePathname();
 
   return (
-    <nav className="border-b border-void-navy bg-deep-indigo/80 backdrop-blur-sm sticky top-0 z-50">
+    <nav
+      className="border-b border-void-navy bg-deep-indigo/80 backdrop-blur-sm sticky top-0 z-50"
+      role="navigation"
+      aria-label="Main navigation"
+    >
       <div className="mx-auto max-w-6xl flex items-center justify-between px-4 h-14">
         <Link
           href="/"
-          className="flex items-center gap-2.5 text-starlight hover:text-aurora-green transition-colors mr-6"
+          className="flex items-center gap-2.5 text-starlight hover:text-aurora-green transition-colors mr-6 focus:outline-none focus:ring-2 focus:ring-aurora-green focus:ring-offset-2 focus:ring-offset-void-navy rounded"
+          aria-label="Aura Home"
         >
           <img src="/logo-black.svg" alt="Aura logo" className="h-8 w-8" />
           <span className="font-display text-lg font-semibold">Aura</span>
         </Link>
 
-        <div className="flex items-center gap-1 overflow-x-auto">
+        <div className="flex items-center gap-1 overflow-x-auto" role="menubar">
           {NAV_ITEMS.map((item) => {
             const isActive =
               item.href === "/"
@@ -45,13 +65,16 @@ export default function NavBar() {
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  "flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
+                  "flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors min-w-[44px] min-h-[44px] touch-manipulation",
                   isActive
-                    ? "bg-aurora-green/10 text-aurora-green"
-                    : "text-faint-star hover:text-starlight hover:bg-void-navy/50",
+                    ? "bg-aurora-green/10 text-aurora-green border border-aurora-green/30"
+                    : "text-faint-star hover:text-starlight hover:bg-void-navy/50 focus:outline-none focus:ring-2 focus:ring-aurora-green/50 focus:ring-offset-2 focus:ring-offset-void-navy",
                 )}
+                role="menuitem"
+                aria-current={isActive ? "page" : undefined}
+                aria-label={item.ariaLabel}
               >
-                <item.icon size={16} />
+                <item.icon size={16} aria-hidden="true" />
                 <span className="hidden sm:inline">{item.label}</span>
               </Link>
             );

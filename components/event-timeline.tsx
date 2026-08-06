@@ -164,11 +164,11 @@ export default function EventTimeline() {
 
           {/* Custom date inputs */}
           {range === "custom" && (
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2">
+            <div className="flex flex-col sm:flex-row items-center gap-4">
+              <div className="flex items-center gap-2 w-full sm:w-auto">
                 <Label
                   htmlFor="event-from-date"
-                  className="text-xs text-faint-star"
+                  className="text-xs text-faint-star whitespace-nowrap"
                 >
                   From
                 </Label>
@@ -177,13 +177,14 @@ export default function EventTimeline() {
                   type="date"
                   value={customFrom}
                   onChange={(e) => setCustomFrom(e.target.value)}
-                  className="bg-void-navy border-void-navy text-starlight placeholder:text-faint-star focus:border-aurora-green w-40"
+                  className="bg-void-navy border-void-navy text-starlight placeholder:text-faint-star focus:border-aurora-green w-full sm:w-40"
+                  max={new Date().toISOString().split("T")[0]}
                 />
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 w-full sm:w-auto">
                 <Label
                   htmlFor="event-to-date"
-                  className="text-xs text-faint-star"
+                  className="text-xs text-faint-star whitespace-nowrap"
                 >
                   To
                 </Label>
@@ -192,7 +193,8 @@ export default function EventTimeline() {
                   type="date"
                   value={customTo}
                   onChange={(e) => setCustomTo(e.target.value)}
-                  className="bg-void-navy border-void-navy text-starlight placeholder:text-faint-star focus:border-aurora-green w-40"
+                  className="bg-void-navy border-void-navy text-starlight placeholder:text-faint-star focus:border-aurora-green w-full sm:w-40"
+                  max={new Date().toISOString().split("T")[0]}
                 />
               </div>
             </div>

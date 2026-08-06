@@ -46,8 +46,10 @@ function tokenize(text: string): React.ReactNode[] {
 
     segments.push(
       <Tooltip key={`${match.index}-${term}`}>
-        {/* No asChild – the trigger itself is styled as inline text */}
-        <TooltipTrigger className="underline decoration-dotted underline-offset-2 cursor-help !text-aurora-green hover:!text-aurora-green/80 inline border-none bg-transparent p-0 font-inherit text-inherit">
+        <TooltipTrigger
+          tabIndex={0}
+          className="underline decoration-dotted underline-offset-2 cursor-help !text-aurora-green hover:!text-aurora-green/80 inline border-none bg-transparent p-0 font-inherit text-inherit focus:outline-none focus:ring-2 focus:ring-aurora-green/50 rounded"
+        >
           {term}
         </TooltipTrigger>
         <TooltipContent
