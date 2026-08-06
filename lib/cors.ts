@@ -1,9 +1,11 @@
 // lib/cors.ts
 
+import { NextResponse } from "next/server";
+
 export function corsHeaders(): HeadersInit {
   return {
     "Access-Control-Allow-Origin":
-      process.env.ALLOWED_ORIGINS?.split(",") || "*",
+      process.env.ALLOWED_ORIGINS?.split(",")[0] || "*",
     "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type, Authorization",
     "Access-Control-Max-Age": "86400",

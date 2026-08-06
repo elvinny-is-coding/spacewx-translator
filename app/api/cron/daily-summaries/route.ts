@@ -184,6 +184,7 @@ export async function POST(request: NextRequest) {
     const alertSummary = buildAlertSummaryText(scales, alerts);
 
     // Build a SpaceWeatherData snapshot for prompt generation
+    // Build a SpaceWeatherData snapshot for prompt generation
     const spaceWeatherData: SpaceWeatherData = {
       kp,
       kpForecast: null,
@@ -192,6 +193,8 @@ export async function POST(request: NextRequest) {
       flares: allFlares,
       cmes: allCMEs,
       noaaScaleG: scales.g,
+      noaaScaleR: scales.r,
+      noaaScaleS: scales.s,
       lastUpdated: new Date().toISOString(),
       warnings: [],
     };
