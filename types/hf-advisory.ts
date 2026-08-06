@@ -7,6 +7,7 @@ export type BandStatus = "good" | "fair" | "poor" | "blackout";
 export interface BandRecommendation {
   range: BandRange;
   status: BandStatus;
+  driver?: string;
   note: string;
 }
 

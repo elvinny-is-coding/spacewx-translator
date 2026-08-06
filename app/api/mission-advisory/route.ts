@@ -1,28 +1,77 @@
 // app/api/mission-advisory/route.ts
 import { NextRequest, NextResponse } from "next/server";
+import { supabaseAdmin } from "@/lib/supabase/admin";
 import { getCloudflareChatResponse } from "@/lib/ai/cloudflare-client";
 import { buildMissionAdvisoryPrompt } from "@/lib/ai/mission-advisory-prompt";
 import type { SpaceWeatherData } from "@/types/spacewx";
 import type { MissionType, MissionVerdict } from "@/types/mission-advisory";
 
-/** Fix common JSON issues from AI output: trailing commas, missing commas between objects, unquoted keys */
+/** Fix common JSON issues from AI output */
 function repairJSON(raw: string): string {
   let fixed = raw
     .replace(/,(\s*[}\]])/g, "$1")
     .replace(/\}(\s*)\{/g, "},$1{")
-    .replace(/\"(\s*)\"/g, '",$1"')
-    .replace(/(\d)(\s*)\"/g, '$1,$2"')
     .replace(/```json\s*/g, "")
     .replace(/```\s*/g, "")
     .trim();
-
   const lastBrace = fixed.lastIndexOf("}");
   if (lastBrace > 0 && lastBrace < fixed.length - 1) {
     fixed = fixed.slice(0, lastBrace + 1);
   }
-
   return fixed;
 }
+
+async function generateAdvisoryWithAI(
+  missionType: MissionType,
+  data: SpaceWeatherData,
+) {
+  const prompt = buildMissionAdvisoryPrompt(missionType, data);
+  const messages = [
+    { role: "system" as const, content: "You output only valid JSON." },
+    { role: "user" as const, content: prompt },
+  ];
+  const rawResponse = await getCloudflareChatResponse(messages);
+  const jsonCandidate = repairJSON(rawResponse);
+
+  let parsed: {
+    advisory: {
+      missionType: string;
+      verdict: string;
+      summary: string;
+      earliestSafeWindow: string | null;
+    };
+  };
+  try {
+    parsed = JSON.parse(jsonCandidate);
+  } catch {
+    const match = jsonCandidate.match(/\{[\s\S]*"advisory"[\s\S]*\}/);
+    if (match) {
+      parsed = JSON.parse(repairJSON(match[0]));
+    } else {
+      throw new Error("Could not parse AI response as JSON");
+    }
+  }
+
+  if (!parsed.advisory || !parsed.advisory.verdict) {
+    throw new Error("Invalid response structure");
+  }
+
+  const validVerdicts: MissionVerdict[] = ["GO", "CONDITIONAL GO", "NO GO"];
+  const verdict: MissionVerdict = validVerdicts.includes(
+    parsed.advisory.verdict as MissionVerdict,
+  )
+    ? (parsed.advisory.verdict as MissionVerdict)
+    : "CONDITIONAL GO";
+
+  return {
+    missionType,
+    verdict,
+    summary: parsed.advisory.summary || "No summary available",
+    earliestSafeWindow: parsed.advisory.earliestSafeWindow || null,
+  };
+}
+
+// ── Route ──
 
 export async function POST(request: NextRequest) {
   try {
@@ -39,58 +88,32 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const prompt = buildMissionAdvisoryPrompt(missionType, data);
-    const messages = [
-      { role: "system" as const, content: "You output only valid JSON." },
-      { role: "user" as const, content: prompt },
-    ];
+    // 1. Try to serve a cached advisory
+    const today = new Date().toISOString().slice(0, 10);
+    const { data: cached, error: fetchError } = await supabaseAdmin
+      .from("mission_advisories")
+      .select("verdict, summary, earliest_safe_window")
+      .eq("date", today)
+      .eq("mission_type", missionType)
+      .maybeSingle();
 
-    const rawResponse = await getCloudflareChatResponse(messages);
-    const jsonCandidate = repairJSON(rawResponse);
-
-    let parsed: {
-      advisory: {
-        missionType: string;
-        verdict: string;
-        summary: string;
-        earliestSafeWindow: string | null;
-      };
-    };
-    try {
-      parsed = JSON.parse(jsonCandidate);
-    } catch {
-      const match = jsonCandidate.match(/\{[\s\S]*"advisory"[\s\S]*\}/);
-      if (match) {
-        parsed = JSON.parse(repairJSON(match[0]));
-      } else {
-        console.error(
-          "Unparseable mission advisory response:",
-          jsonCandidate.slice(0, 500),
-        );
-        throw new Error("Could not parse AI response as JSON");
-      }
+    if (!fetchError && cached) {
+      return NextResponse.json({
+        advisory: {
+          missionType,
+          verdict: cached.verdict,
+          summary: cached.summary,
+          earliestSafeWindow: cached.earliest_safe_window ?? null,
+        },
+        generatedAt: new Date().toISOString(),
+      });
     }
 
-    if (!parsed.advisory || !parsed.advisory.verdict) {
-      throw new Error(
-        "Invalid response structure: missing advisory or verdict",
-      );
-    }
-
-    const validVerdicts: MissionVerdict[] = ["GO", "CONDITIONAL GO", "NO GO"];
-    const verdict: MissionVerdict = validVerdicts.includes(
-      parsed.advisory.verdict as MissionVerdict,
-    )
-      ? (parsed.advisory.verdict as MissionVerdict)
-      : "CONDITIONAL GO";
+    // 2. Fall back to AI generation
+    const advisory = await generateAdvisoryWithAI(missionType, data);
 
     return NextResponse.json({
-      advisory: {
-        missionType,
-        verdict,
-        summary: parsed.advisory.summary || "No summary available",
-        earliestSafeWindow: parsed.advisory.earliestSafeWindow || null,
-      },
+      advisory,
       generatedAt: new Date().toISOString(),
     });
   } catch (err: any) {

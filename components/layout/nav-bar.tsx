@@ -37,7 +37,7 @@ const NAV_ITEMS = [
   { href: "/alerts", label: "Alerts", icon: Bell, ariaLabel: "Active Alerts" },
   {
     href: "/ops",
-    label: "Ops",
+    label: "Operations",
     icon: Satellite,
     ariaLabel: "Operations Center",
   },

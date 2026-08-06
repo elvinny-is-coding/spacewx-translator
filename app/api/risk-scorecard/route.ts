@@ -1,7 +1,6 @@
 // app/api/risk-scorecard/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { getCloudflareChatResponse } from "@/lib/ai/cloudflare-client";
-import { buildRiskRecommendationsPrompt } from "@/lib/ai/risk-scorecard-prompt";
+import { supabaseAdmin } from "@/lib/supabase/admin";
 import type { SpaceWeatherData } from "@/types/spacewx";
 import type { RiskAssessment, RiskLevel } from "@/types/risk-scorecard";
 
@@ -18,12 +17,6 @@ function computeDeterministicAssessment(data: SpaceWeatherData): {
     f.classType.toUpperCase().startsWith("X"),
   );
   const bz = data.solarWind?.bz ?? 0;
-
-  function level(r: number, g: number, s: number, x: boolean): RiskLevel {
-    if (r >= 2 || s >= 2 || g >= 2) return "high";
-    if (r >= 1 || s >= 1 || g >= 1 || x) return "medium";
-    return "low";
-  }
 
   return {
     assessments: [
@@ -68,7 +61,7 @@ function computeDeterministicAssessment(data: SpaceWeatherData): {
   };
 }
 
-// ── Default recommendations when AI fails ──
+// ── Default recommendations when no cached data ──
 
 const DEFAULT_RECOMMENDATIONS: Record<string, Record<string, string>> = {
   "HF Communications": {
@@ -117,59 +110,30 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Compute deterministic risk levels and drivers
-    const deterministic = computeDeterministicAssessment(data);
+    // 1. Try to serve the precomputed risk scorecard
+    const today = new Date().toISOString().slice(0, 10);
+    const { data: cached, error: fetchError } = await supabaseAdmin
+      .from("risk_scorecards")
+      .select("assessments")
+      .eq("date", today)
+      .maybeSingle();
 
-    // Try to get AI-generated recommendations
-    let aiRecommendations: string[] = [];
-    try {
-      const prompt = buildRiskRecommendationsPrompt(data);
-      const messages = [
-        {
-          role: "system" as const,
-          content: "You are a concise space weather analyst.",
-        },
-        { role: "user" as const, content: prompt },
-      ];
-      const rawResponse = await getCloudflareChatResponse(messages);
-
-      // Parse the AI response: each line should be "System: recommendation"
-      const lines = rawResponse
-        .split("\n")
-        .map((line) => line.trim())
-        .filter((line) => line.includes(":"));
-
-      // Map systems to their recommendations
-      const systemOrder = [
-        "HF Communications",
-        "GNSS",
-        "LEO Satellite Drag",
-        "Power Grid",
-        "Polar Aviation",
-      ];
-
-      aiRecommendations = systemOrder.map((sys) => {
-        const line = lines.find((l) =>
-          l.toLowerCase().startsWith(sys.toLowerCase()),
-        );
-        if (!line) return "";
-        // Extract everything after the first colon
-        const colonIdx = line.indexOf(":");
-        return colonIdx > 0 ? line.slice(colonIdx + 1).trim() : "";
+    if (!fetchError && cached?.assessments) {
+      return NextResponse.json({
+        assessments: cached.assessments,
+        generatedAt: new Date().toISOString(),
       });
-    } catch {
-      console.warn("AI risk recommendations failed, using defaults");
     }
 
-    // Merge deterministic levels with recommendations
+    // 2. Fall back to deterministic computation + default recommendations
+    const deterministic = computeDeterministicAssessment(data);
     const assessments: RiskAssessment[] = deterministic.assessments.map(
-      (item, idx) => ({
+      (item) => ({
         system: item.system as any,
         riskLevel: item.riskLevel,
         driver: item.driver,
         recommendation:
-          aiRecommendations[idx] ||
-          DEFAULT_RECOMMENDATIONS[item.system]?.[item.riskLevel] ||
+          DEFAULT_RECOMMENDATIONS[item.system]?.[item.riskLevel] ??
           "No recommendation available.",
       }),
     );

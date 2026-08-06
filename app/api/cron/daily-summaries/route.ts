@@ -18,18 +18,27 @@ import {
   normalizeFlares,
   normalizeCMEs,
 } from "@/lib/spacewx/normalizers";
-import { buildDailyBriefingPrompt } from "@/lib/ai/prompts";
+import {
+  buildDailyBriefingPrompt,
+  buildRiskRecommendationsPrompt,
+} from "@/lib/ai/prompts";
+import { buildMissionAdvisoryPrompt } from "@/lib/ai/mission-advisory-prompt";
 import { getGraniteSummary } from "@/lib/ai/granite-client";
-import { getCloudflareSummary } from "@/lib/ai/cloudflare-client";
+import {
+  getCloudflareSummary,
+  getCloudflareChatResponse,
+} from "@/lib/ai/cloudflare-client";
 import { reshapeOvationGrid } from "@/lib/aurora-utils";
 import { getSuggestedPrompts } from "@/lib/suggested-prompts";
+import { computeDeterministicAssessments } from "@/lib/spacewx/risk";
 import type { Audience } from "@/types/audience";
 import type { NotableEvent, DailyBriefingInput } from "@/lib/ai/prompts";
 import type { SpaceWeatherData } from "@/types/spacewx";
+import type { MissionType } from "@/types/mission-advisory";
 
 const AUDIENCES: Audience[] = ["general", "educator", "technical"];
 
-// ── Helpers (unchanged) ──
+// ── Helpers ──
 
 function parseFlareClass(
   classType: string,
@@ -184,7 +193,6 @@ export async function POST(request: NextRequest) {
     const alertSummary = buildAlertSummaryText(scales, alerts);
 
     // Build a SpaceWeatherData snapshot for prompt generation
-    // Build a SpaceWeatherData snapshot for prompt generation
     const spaceWeatherData: SpaceWeatherData = {
       kp,
       kpForecast: null,
@@ -307,6 +315,179 @@ export async function POST(request: NextRequest) {
         errors[`daily_summaries_${audience}`] = {
           message: "Used deterministic fallback — Cloudflare failed",
           cfError,
+        };
+      }
+    }
+
+    // ── Generate risk scorecard ──
+    const deterministicAssessments =
+      computeDeterministicAssessments(spaceWeatherData);
+
+    let aiRecommendations: string[] = [];
+    try {
+      const prompt = buildRiskRecommendationsPrompt(spaceWeatherData);
+      const rawResponse = await getCloudflareSummary(prompt);
+      const lines = rawResponse
+        .split("\n")
+        .map((line) => line.trim())
+        .filter((line) => line.includes(":"));
+
+      const systemOrder = [
+        "HF Communications",
+        "GNSS",
+        "LEO Satellite Drag",
+        "Power Grid",
+        "Polar Aviation",
+      ];
+      aiRecommendations = systemOrder.map((sys) => {
+        const line = lines.find((l) =>
+          l.toLowerCase().startsWith(sys.toLowerCase()),
+        );
+        if (!line) return "";
+        const colonIdx = line.indexOf(":");
+        return colonIdx > 0 ? line.slice(colonIdx + 1).trim() : "";
+      });
+    } catch {
+      console.warn("AI risk recommendations failed in cron, using defaults");
+    }
+
+    const defaultRecs: Record<string, Record<string, string>> = {
+      "HF Communications": {
+        low: "HF conditions normal.",
+        medium: "Monitor HF propagation.",
+        high: "Switch to SATCOM backup.",
+        critical: "HF blackout expected.",
+      },
+      GNSS: {
+        low: "GNSS nominal.",
+        medium: "Add 1-3m margin.",
+        high: "GNSS degraded. Use augmentations.",
+        critical: "GNSS unreliable.",
+      },
+      "LEO Satellite Drag": {
+        low: "LEO drag nominal.",
+        medium: "Minor drag increase.",
+        high: "Significant drag increase.",
+        critical: "Severe drag.",
+      },
+      "Power Grid": {
+        low: "No GIC concern.",
+        medium: "Minor GIC risk.",
+        high: "Elevated GIC risk.",
+        critical: "Severe GIC risk.",
+      },
+      "Polar Aviation": {
+        low: "Polar aviation nominal.",
+        medium: "Monitor radiation.",
+        high: "Activate contingency.",
+        critical: "Avoid polar routes.",
+      },
+    };
+
+    const riskAssessments = deterministicAssessments.map((item, idx) => ({
+      system: item.system,
+      riskLevel: item.riskLevel,
+      driver: item.driver,
+      recommendation:
+        aiRecommendations[idx] ||
+        defaultRecs[item.system]?.[item.riskLevel] ||
+        "No recommendation available.",
+    }));
+
+    const { error: riskError } = await supabaseAdmin
+      .from("risk_scorecards")
+      .upsert(
+        {
+          date: today,
+          assessments: riskAssessments,
+          generated_at: new Date().toISOString(),
+        },
+        { onConflict: "date" },
+      );
+
+    if (riskError) {
+      errors.risk_scorecard = {
+        message: riskError.message,
+        hint: riskError.hint,
+        code: riskError.code,
+      };
+    }
+
+    // ── Generate mission advisories ──
+    const MISSION_TYPES: MissionType[] = [
+      "CubeSat Launch",
+      "HF Operation",
+      "Balloon Flight",
+      "Aurora Photography",
+      "Satellite Maintenance",
+      "Telescope Observation",
+    ];
+
+    const validVerdicts = ["GO", "CONDITIONAL GO", "NO GO"];
+
+    for (const missionType of MISSION_TYPES) {
+      let verdict = "CONDITIONAL GO";
+      let summary = "No summary available.";
+      let earliestSafeWindow: string | null = null;
+
+      try {
+        const missionPrompt = buildMissionAdvisoryPrompt(
+          missionType,
+          spaceWeatherData,
+        );
+        const missionMessages = [
+          { role: "system" as const, content: "You output only valid JSON." },
+          { role: "user" as const, content: missionPrompt },
+        ];
+        const rawResponse = await getCloudflareChatResponse(missionMessages);
+
+        // Parse the JSON response
+        const jsonCandidate = rawResponse
+          .replace(/```json\s*/g, "")
+          .replace(/```\s*/g, "")
+          .trim();
+
+        let parsed: any;
+        try {
+          parsed = JSON.parse(jsonCandidate);
+        } catch {
+          const match = jsonCandidate.match(/\{[\s\S]*"advisory"[\s\S]*\}/);
+          if (match) parsed = JSON.parse(match[0]);
+          else throw new Error("Could not parse mission advisory JSON");
+        }
+
+        if (parsed?.advisory) {
+          verdict = validVerdicts.includes(parsed.advisory.verdict)
+            ? parsed.advisory.verdict
+            : "CONDITIONAL GO";
+          summary = parsed.advisory.summary || summary;
+          earliestSafeWindow = parsed.advisory.earliestSafeWindow || null;
+        }
+      } catch (err) {
+        console.warn(
+          `Mission advisory AI failed for ${missionType}, using defaults`,
+        );
+      }
+
+      const { error: missionError } = await supabaseAdmin
+        .from("mission_advisories")
+        .upsert(
+          {
+            date: today,
+            mission_type: missionType,
+            verdict,
+            summary,
+            earliest_safe_window: earliestSafeWindow,
+            generated_at: new Date().toISOString(),
+          },
+          { onConflict: "date, mission_type" },
+        );
+
+      if (missionError) {
+        errors[`mission_advisory_${missionType}`] = {
+          message: missionError.message,
+          hint: missionError.hint,
+          code: missionError.code,
         };
       }
     }
