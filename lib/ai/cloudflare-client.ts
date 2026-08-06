@@ -1,3 +1,5 @@
+// lib/ai/cloudflare-client.ts
+
 const CLOUDFLARE_WORKER_AI_API_KEY = process.env.CLOUDFLARE_WORKER_AI_API_KEY;
 const CLOUDFLARE_WORKER_AI_ACCOUNT_ID =
   process.env.CLOUDFLARE_WORKER_AI_ACCOUNT_ID;
@@ -10,8 +12,6 @@ interface CloudflareAIResponse {
   success: boolean;
   errors?: any[];
 }
-
-// ── Original function – used by cron summaries (unchanged) ──
 
 export async function getCloudflareSummary(prompt: string): Promise<string> {
   if (!CLOUDFLARE_WORKER_AI_API_KEY || !CLOUDFLARE_WORKER_AI_ACCOUNT_ID) {
@@ -49,8 +49,6 @@ export async function getCloudflareSummary(prompt: string): Promise<string> {
   return json.result.response.trim();
 }
 
-// ── New function – used by the chat API (accepts full messages array + optional model) ──
-
 export async function getCloudflareChatResponse(
   messages: { role: string; content: string }[],
   model?: string,
@@ -83,5 +81,11 @@ export async function getCloudflareChatResponse(
     );
   }
 
-  return json.result.response.trim();
+  // Handle both string and object response types
+  const responseText =
+    typeof json.result.response === "string"
+      ? json.result.response
+      : JSON.stringify(json.result.response);
+
+  return responseText.trim();
 }

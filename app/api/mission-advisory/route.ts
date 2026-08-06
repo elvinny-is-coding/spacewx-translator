@@ -5,6 +5,25 @@ import { buildMissionAdvisoryPrompt } from "@/lib/ai/mission-advisory-prompt";
 import type { SpaceWeatherData } from "@/types/spacewx";
 import type { MissionType, MissionVerdict } from "@/types/mission-advisory";
 
+/** Fix common JSON issues from AI output: trailing commas, missing commas between objects, unquoted keys */
+function repairJSON(raw: string): string {
+  let fixed = raw
+    .replace(/,(\s*[}\]])/g, "$1")
+    .replace(/\}(\s*)\{/g, "},$1{")
+    .replace(/\"(\s*)\"/g, '",$1"')
+    .replace(/(\d)(\s*)\"/g, '$1,$2"')
+    .replace(/```json\s*/g, "")
+    .replace(/```\s*/g, "")
+    .trim();
+
+  const lastBrace = fixed.lastIndexOf("}");
+  if (lastBrace > 0 && lastBrace < fixed.length - 1) {
+    fixed = fixed.slice(0, lastBrace + 1);
+  }
+
+  return fixed;
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -27,12 +46,7 @@ export async function POST(request: NextRequest) {
     ];
 
     const rawResponse = await getCloudflareChatResponse(messages);
-
-    // Clean markdown code fences if present
-    const jsonCandidate = rawResponse
-      .replace(/```json\s*/g, "")
-      .replace(/```\s*/g, "")
-      .trim();
+    const jsonCandidate = repairJSON(rawResponse);
 
     let parsed: {
       advisory: {
@@ -45,23 +59,24 @@ export async function POST(request: NextRequest) {
     try {
       parsed = JSON.parse(jsonCandidate);
     } catch {
-      // If JSON is embedded in a larger text, try to extract it
       const match = jsonCandidate.match(/\{[\s\S]*"advisory"[\s\S]*\}/);
       if (match) {
-        parsed = JSON.parse(match[0]);
+        parsed = JSON.parse(repairJSON(match[0]));
       } else {
+        console.error(
+          "Unparseable mission advisory response:",
+          jsonCandidate.slice(0, 500),
+        );
         throw new Error("Could not parse AI response as JSON");
       }
     }
 
-    // Validate structure
     if (!parsed.advisory || !parsed.advisory.verdict) {
       throw new Error(
         "Invalid response structure: missing advisory or verdict",
       );
     }
 
-    // Validate and cast verdict
     const validVerdicts: MissionVerdict[] = ["GO", "CONDITIONAL GO", "NO GO"];
     const verdict: MissionVerdict = validVerdicts.includes(
       parsed.advisory.verdict as MissionVerdict,

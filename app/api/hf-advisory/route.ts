@@ -18,6 +18,25 @@ const VALID_RANGES: BandRange[] = [
 ];
 const VALID_STATUSES: BandStatus[] = ["good", "fair", "poor", "blackout"];
 
+/** Fix common JSON issues from AI output: trailing commas, missing commas between objects, unquoted keys */
+function repairJSON(raw: string): string {
+  let fixed = raw
+    .replace(/,(\s*[}\]])/g, "$1")
+    .replace(/\}(\s*)\{/g, "},$1{")
+    .replace(/\"(\s*)\"/g, '",$1"')
+    .replace(/(\d)(\s*)\"/g, '$1,$2"')
+    .replace(/```json\s*/g, "")
+    .replace(/```\s*/g, "")
+    .trim();
+
+  const lastBrace = fixed.lastIndexOf("}");
+  if (lastBrace > 0 && lastBrace < fixed.length - 1) {
+    fixed = fixed.slice(0, lastBrace + 1);
+  }
+
+  return fixed;
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -41,12 +60,7 @@ export async function POST(request: NextRequest) {
     ];
 
     const rawResponse = await getCloudflareChatResponse(messages);
-
-    // Clean markdown code fences if present
-    const jsonCandidate = rawResponse
-      .replace(/```json\s*/g, "")
-      .replace(/```\s*/g, "")
-      .trim();
+    const jsonCandidate = repairJSON(rawResponse);
 
     let parsed: {
       qth: string;
@@ -58,21 +72,22 @@ export async function POST(request: NextRequest) {
     try {
       parsed = JSON.parse(jsonCandidate);
     } catch {
-      // Try to extract JSON from larger text
       const match = jsonCandidate.match(/\{[\s\S]*"bands"[\s\S]*\}/);
       if (match) {
-        parsed = JSON.parse(match[0]);
+        parsed = JSON.parse(repairJSON(match[0]));
       } else {
+        console.error(
+          "Unparseable HF advisory response:",
+          jsonCandidate.slice(0, 500),
+        );
         throw new Error("Could not parse AI response as JSON");
       }
     }
 
-    // Validate structure
     if (!parsed.bands || !Array.isArray(parsed.bands)) {
       throw new Error("Invalid response structure: missing bands array");
     }
 
-    // Validate and cast each band range
     const validBands: BandRecommendation[] = parsed.bands.map((b: any) => ({
       range: VALID_RANGES.includes(b.range) ? b.range : "20m",
       status: VALID_STATUSES.includes(b.status as BandStatus)
@@ -81,7 +96,6 @@ export async function POST(request: NextRequest) {
       note: b.note || "No data available for this range.",
     }));
 
-    // Sort by range (from high frequency to low)
     const sortedBands = validBands.sort(
       (a, b) =>
         VALID_RANGES.indexOf(a.range as BandRange) -

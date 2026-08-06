@@ -19,7 +19,13 @@ function formatAlerts(data: SpaceWeatherData): string {
     .join("; ");
 }
 
-export function buildRiskScorecardPrompt(data: SpaceWeatherData): string {
+/**
+ * Builds a prompt that asks the AI for five short, plain‑language
+ * operational recommendations — one per system.
+ * The risk level and driver are computed deterministically elsewhere;
+ * the AI only fills in the natural‑language "recommendation" text.
+ */
+export function buildRiskRecommendationsPrompt(data: SpaceWeatherData): string {
   const kpInfo =
     data.kp !== null ? `Kp ${data.kp.toFixed(1)}` : "Kp unavailable";
   const { label: kpLabel } = severityFromKp(data.kp);
@@ -42,17 +48,21 @@ export function buildRiskScorecardPrompt(data: SpaceWeatherData): string {
   ].join("\n");
 
   return [
-    "System: You are a space weather risk analyst. Given the current space weather conditions, evaluate the operational risk for five key systems.",
+    "System: You are a space weather risk analyst. Based on the data below, write one short, actionable operational recommendation for each of these five systems.",
+    "Write exactly ONE sentence per system. Keep each sentence under 25 words. Do NOT use JSON, bullet points, or markdown.",
     "",
-    "For each system, provide:",
-    "- riskLevel: one of 'low', 'medium', 'high', 'critical'",
-    "- driver: a short description of the primary space weather factor driving this risk level (e.g., 'R2 blackout + X1.3 flare', 'G2 storm', 'S2 radiation storm')",
-    "- recommendation: a short, actionable one-line recommendation for operators",
+    "Systems: HF Communications, GNSS, LEO Satellite Drag, Power Grid, Polar Aviation",
     "",
-    "Respond ONLY with valid JSON in this exact structure:",
-    '{ "assessments": [ { "system": "HF Communications", "riskLevel": "...", "driver": "...", "recommendation": "..." }, ... ] }',
+    "Example (do not copy, write fresh for the current data):",
+    "HF Communications: Shift to NVIS or SATCOM backup due to R2 blackout on the sunlit hemisphere.",
+    "GNSS: Add 2 m margin to positioning solutions; ionospheric scintillation likely.",
+    "LEO Satellite Drag: Schedule orbit maintenance within 24h; G2 storm increasing drag by ~15%.",
+    "Power Grid: No action required; Bz northward and G-scale quiet.",
+    "Polar Aviation: Activate polar route contingency plan; S2 radiation storm in progress.",
     "",
     "Current space weather data:",
     facts,
+    "",
+    "Recommendations:",
   ].join("\n");
 }
