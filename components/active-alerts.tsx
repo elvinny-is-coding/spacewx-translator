@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { memo, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { AlertTriangle, CheckCircle, ChevronRight } from "lucide-react";
@@ -12,7 +12,7 @@ interface ActiveAlertsProps {
   alerts: Alert[];
 }
 
-export default function ActiveAlerts({ alerts }: ActiveAlertsProps) {
+function ActiveAlerts({ alerts }: ActiveAlertsProps) {
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedAlert, setSelectedAlert] = useState<Alert | null>(null);
 
@@ -109,7 +109,6 @@ export default function ActiveAlerts({ alerts }: ActiveAlertsProps) {
         </CardContent>
       </Card>
 
-      {/* Single-alert modal */}
       <AlertDetailModalSingle
         alert={selectedAlert}
         open={!!selectedAlert}
@@ -118,7 +117,6 @@ export default function ActiveAlerts({ alerts }: ActiveAlertsProps) {
         }}
       />
 
-      {/* All-alerts modal */}
       <AlertDetailModal
         alerts={alerts}
         open={modalOpen}
@@ -127,3 +125,5 @@ export default function ActiveAlerts({ alerts }: ActiveAlertsProps) {
     </>
   );
 }
+
+export default memo(ActiveAlerts);

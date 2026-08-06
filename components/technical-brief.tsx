@@ -1,6 +1,7 @@
 // components/technical-brief.tsx
 "use client";
 
+import { memo } from "react";
 import type { SpaceWeatherData } from "@/types/spacewx";
 import { classifyFlare } from "@/lib/flare-utils";
 import { kpToGScale } from "@/config/constants";
@@ -46,7 +47,7 @@ function hasProtonStorm(alerts: SpaceWeatherData["alerts"]): boolean {
   return alerts.some((a) => a.message.toLowerCase().includes("proton"));
 }
 
-export default function TechnicalBrief({ data }: TechnicalBriefProps) {
+function TechnicalBrief({ data }: TechnicalBriefProps) {
   const windCategory = getSolarWindCategory(data.solarWind?.speed ?? null);
   const bzCategory = getBzCategory(data.solarWind?.bz ?? null);
   const gScaleDisplay =
@@ -210,3 +211,5 @@ export default function TechnicalBrief({ data }: TechnicalBriefProps) {
     </div>
   );
 }
+
+export default memo(TechnicalBrief);

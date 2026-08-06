@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import {
@@ -49,7 +50,13 @@ export default function NavBar() {
           className="flex items-center gap-2.5 text-starlight hover:text-aurora-green transition-colors mr-6 focus:outline-none focus:ring-2 focus:ring-aurora-green focus:ring-offset-2 focus:ring-offset-void-navy rounded"
           aria-label="Aura Home"
         >
-          <img src="/logo-black.svg" alt="Aura logo" className="h-8 w-8" />
+          <Image
+            src="/logo-black.svg"
+            alt="Aura logo"
+            width={32}
+            height={32}
+            priority
+          />
           <span className="font-display text-lg font-semibold">Aura</span>
         </Link>
 

@@ -1,3 +1,5 @@
+import { memo } from "react";
+import Image from "next/image";
 import { AlertTriangle, Clock } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { severityFromKp } from "@/config/constants";
@@ -8,11 +10,7 @@ interface StatusBarProps {
   kp: number | null;
 }
 
-export default function StatusBar({
-  lastUpdated,
-  warnings,
-  kp,
-}: StatusBarProps) {
+function StatusBar({ lastUpdated, warnings, kp }: StatusBarProps) {
   const { label, color } = severityFromKp(kp);
 
   const updatedDate = new Date(lastUpdated);
@@ -25,7 +23,13 @@ export default function StatusBar({
   return (
     <div className="flex flex-wrap items-center justify-between gap-4">
       <div className="flex items-center gap-3">
-        <img src="/logo-black.svg" alt="Aura logo" className="h-6 w-6" />
+        <Image
+          src="/logo-black.svg"
+          alt="Aura logo"
+          width={24}
+          height={24}
+          priority
+        />
         <h1 className="font-display text-lg text-starlight tracking-wide">
           AURA
         </h1>
@@ -55,3 +59,5 @@ export default function StatusBar({
     </div>
   );
 }
+
+export default memo(StatusBar);
