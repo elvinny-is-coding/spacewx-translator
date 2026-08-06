@@ -10,6 +10,7 @@ import {
   TrendingUp,
   Calendar,
   Bell,
+  Satellite,
 } from "lucide-react";
 import ThemeToggle from "@/components/theme-toggle";
 
@@ -34,6 +35,12 @@ const NAV_ITEMS = [
     ariaLabel: "Event Timeline",
   },
   { href: "/alerts", label: "Alerts", icon: Bell, ariaLabel: "Active Alerts" },
+  {
+    href: "/ops",
+    label: "Ops",
+    icon: Satellite,
+    ariaLabel: "Operations Center",
+  },
 ];
 
 export default function NavBar() {

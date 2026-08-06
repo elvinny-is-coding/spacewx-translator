@@ -33,6 +33,10 @@ const MISSION_GUIDANCE: Record<MissionType, string> = {
     "High‑altitude balloon flights need Kp < 5 and no active radiation storm (S‑scale must be S0). Proton flux above 10 pfu is a hard no‑go. Solar wind speed > 600 km/s may indicate CME arrival and increased risk.",
   "Aurora Photography":
     "Aurora photography benefits from Kp ≥ 4 for better displays at mid‑latitudes. Southward Bz (< -5) is ideal. Clear skies assumed. No critical radiation or radio blackout concerns — this is the least restrictive mission type.",
+  "Satellite Maintenance":
+    "Satellite maintenance burns and orbit adjustments require Kp < 5 for accurate tracking and minimal drag uncertainty. G‑scale should be G0 or G1. No active radiation storms (S‑scale must be S0). Solar wind speed > 600 km/s increases drag unpredictability.",
+  "Telescope Observation":
+    "Telescope observations benefit from low Kp and minimal ionospheric scintillation. Kp < 3 is ideal. R‑scale should be R0 to avoid radio interference. No specific radiation or geomagnetic constraints beyond quiet conditions.",
 };
 
 export function buildMissionAdvisoryPrompt(

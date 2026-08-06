@@ -31,6 +31,8 @@ const MISSION_TYPES: MissionType[] = [
   "HF Operation",
   "Balloon Flight",
   "Aurora Photography",
+  "Satellite Maintenance",
+  "Telescope Observation",
 ];
 
 function verdictColor(verdict: string): string {

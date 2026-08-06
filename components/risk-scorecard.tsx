@@ -115,6 +115,11 @@ export default function RiskScorecard({ data }: RiskScorecardProps) {
                   {a.riskLevel.toUpperCase()}
                 </span>
               </div>
+              {a.driver && (
+                <p className="text-xs text-faint-star mb-1 italic">
+                  Driver: {a.driver}
+                </p>
+              )}
               <p className="text-xs text-faint-star leading-relaxed">
                 {a.recommendation}
               </p>

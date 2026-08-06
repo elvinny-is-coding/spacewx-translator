@@ -37,23 +37,10 @@ export function buildHfAdvisoryPrompt(
     `Alerts: ${data.alerts.length > 0 ? data.alerts.map((a) => a.message.slice(0, 100)).join("; ") : "none"}`,
   ].join("\n");
 
-  const bands = [
-    "160m",
-    "80m",
-    "60m",
-    "40m",
-    "30m",
-    "20m",
-    "17m",
-    "15m",
-    "12m",
-    "10m",
-    "6m",
-    "2m",
-  ];
+  const ranges = ["10-15m", "17-20m", "30-40m", "60-80m", "160m+"];
 
   return [
-    "System: You are an HF radio propagation analyst. Given the operator's location, target region, and current space weather conditions, provide a band-by-band propagation assessment.",
+    "System: You are an HF radio propagation analyst. Given the operator's location, target region, and current space weather conditions, provide a grouped band-range propagation assessment.",
     "",
     "Consider:",
     "- R-scale (radio blackout): R1+ means HF blackouts on the sunlit side",
@@ -61,10 +48,10 @@ export function buildHfAdvisoryPrompt(
     "- Solar wind speed and Bz: southward Bz can enhance auroral propagation on higher bands but degrade lower ones",
     "- Flares: recent X-class or M-class flares cause shortwave fadeouts",
     "",
-    "For each band, provide:",
-    "- band: one of the band names listed below",
-    "- condition: one of 'good', 'fair', 'poor', 'closed'",
-    "- recommendation: a short, actionable one-line tip for the operator",
+    "For each band range, provide:",
+    "- range: one of the band range names listed below",
+    "- status: one of 'good', 'fair', 'poor', 'blackout'",
+    "- note: a short, actionable one-line tip for the operator",
     "",
     "Also provide a 2-3 sentence summary with your overall assessment.",
     "",
@@ -73,11 +60,11 @@ export function buildHfAdvisoryPrompt(
       qth +
       '", "target": "' +
       target +
-      '", "bands": [ { "band": "160m", "condition": "...", "recommendation": "..." }, ... ], "summary": "..." }',
+      '", "bands": [ { "range": "10-15m", "status": "...", "note": "..." }, ... ], "summary": "..." }',
     "",
     "Current conditions:",
     facts,
     "",
-    "Band names to include: " + bands.join(", "),
+    "Band ranges to include: " + ranges.join(", "),
   ].join("\n");
 }

@@ -56,6 +56,7 @@ export async function POST(request: NextRequest) {
         riskLevel: ["low", "medium", "high", "critical"].includes(a.riskLevel)
           ? a.riskLevel
           : "low",
+        driver: a.driver || "Unknown",
         recommendation: a.recommendation || "No recommendation available",
       }),
     );

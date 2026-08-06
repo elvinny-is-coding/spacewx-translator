@@ -3,7 +3,7 @@
 
 import { useState } from "react";
 import type { SpaceWeatherData } from "@/types/spacewx";
-import type { BandRecommendation, BandCondition } from "@/types/hf-advisory";
+import type { BandRecommendation, BandStatus } from "@/types/hf-advisory";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,31 +14,31 @@ interface HfAdvisorProps {
   data: SpaceWeatherData;
 }
 
-function conditionColor(condition: BandCondition): string {
-  switch (condition) {
+function statusColor(status: BandStatus): string {
+  switch (status) {
     case "good":
       return "bg-aurora-green/20 text-aurora-green border-aurora-green/30";
     case "fair":
       return "bg-solar-amber/20 text-solar-amber border-solar-amber/30";
     case "poor":
       return "bg-solar-amber/30 text-solar-amber border-solar-amber/50";
-    case "closed":
+    case "blackout":
       return "bg-red-600/20 text-red-400 border-red-600/30";
     default:
       return "bg-faint-star/20 text-faint-star border-faint-star/30";
   }
 }
 
-function conditionLabel(condition: BandCondition): string {
-  switch (condition) {
+function statusLabel(status: BandStatus): string {
+  switch (status) {
     case "good":
       return "Good";
     case "fair":
       return "Fair";
     case "poor":
       return "Poor";
-    case "closed":
-      return "Closed";
+    case "blackout":
+      return "Blackout";
     default:
       return "Unknown";
   }
@@ -156,29 +156,27 @@ export default function HfAdvisor({ data }: HfAdvisorProps) {
           <div className="grid grid-cols-3 gap-1.5">
             {bands.map((b) => (
               <div
-                key={b.band}
-                className={`rounded-lg border px-2 py-1.5 text-center ${conditionColor(b.condition)}`}
-                title={b.recommendation}
+                key={b.range}
+                className={`rounded-lg border px-2 py-1.5 text-center ${statusColor(b.status)}`}
+                title={b.note}
               >
-                <div className="text-xs font-mono font-semibold">{b.band}</div>
+                <div className="text-xs font-mono font-semibold">{b.range}</div>
                 <div className="text-[10px] leading-tight">
-                  {conditionLabel(b.condition)}
+                  {statusLabel(b.status)}
                 </div>
               </div>
             ))}
           </div>
 
-          {/* Band details (expandable on tap) */}
+          {/* Band details */}
           <div className="space-y-1">
-            {bands.slice(0, 5).map((b) => (
+            {bands.map((b) => (
               <div
-                key={`detail-${b.band}`}
+                key={`detail-${b.range}`}
                 className="flex items-center justify-between text-xs"
               >
-                <span className="text-faint-star font-mono">{b.band}</span>
-                <span className="text-faint-star truncate ml-2">
-                  {b.recommendation}
-                </span>
+                <span className="text-faint-star font-mono">{b.range}</span>
+                <span className="text-faint-star truncate ml-2">{b.note}</span>
               </div>
             ))}
           </div>

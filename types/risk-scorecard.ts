@@ -12,6 +12,7 @@ export type OperationalSystem =
 export interface RiskAssessment {
   system: OperationalSystem;
   riskLevel: RiskLevel;
+  driver: string;
   recommendation: string;
 }
 

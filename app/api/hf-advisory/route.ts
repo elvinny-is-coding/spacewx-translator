@@ -3,24 +3,20 @@ import { NextRequest, NextResponse } from "next/server";
 import { getCloudflareChatResponse } from "@/lib/ai/cloudflare-client";
 import { buildHfAdvisoryPrompt } from "@/lib/ai/hf-advisory-prompt";
 import type { SpaceWeatherData } from "@/types/spacewx";
-import type { BandCondition, BandRecommendation } from "@/types/hf-advisory";
+import type {
+  BandRange,
+  BandStatus,
+  BandRecommendation,
+} from "@/types/hf-advisory";
 
-const VALID_BANDS = [
-  "160m",
-  "80m",
-  "60m",
-  "40m",
-  "30m",
-  "20m",
-  "17m",
-  "15m",
-  "12m",
-  "10m",
-  "6m",
-  "2m",
+const VALID_RANGES: BandRange[] = [
+  "10-15m",
+  "17-20m",
+  "30-40m",
+  "60-80m",
+  "160m+",
 ];
-
-const VALID_CONDITIONS: BandCondition[] = ["good", "fair", "poor", "closed"];
+const VALID_STATUSES: BandStatus[] = ["good", "fair", "poor", "blackout"];
 
 export async function POST(request: NextRequest) {
   try {
@@ -55,7 +51,7 @@ export async function POST(request: NextRequest) {
     let parsed: {
       qth: string;
       target: string;
-      bands: { band: string; condition: string; recommendation: string }[];
+      bands: { range: string; status: string; note: string }[];
       summary: string;
     };
 
@@ -76,29 +72,20 @@ export async function POST(request: NextRequest) {
       throw new Error("Invalid response structure: missing bands array");
     }
 
-    // Validate and cast each band
+    // Validate and cast each band range
     const validBands: BandRecommendation[] = parsed.bands.map((b: any) => ({
-      band: VALID_BANDS.includes(b.band) ? b.band : "20m",
-      condition: VALID_CONDITIONS.includes(b.condition as BandCondition)
-        ? (b.condition as BandCondition)
+      range: VALID_RANGES.includes(b.range) ? b.range : "20m",
+      status: VALID_STATUSES.includes(b.status as BandStatus)
+        ? (b.status as BandStatus)
         : "fair",
-      recommendation: b.recommendation || "No recommendation available",
+      note: b.note || "No data available for this range.",
     }));
 
-    // Fill in any missing bands
-    for (const band of VALID_BANDS) {
-      if (!validBands.find((b) => b.band === band)) {
-        validBands.push({
-          band: band as BandRecommendation["band"],
-          condition: "fair",
-          recommendation: "No data available for this band.",
-        });
-      }
-    }
-
-    // Sort by band (lowest frequency first)
+    // Sort by range (from high frequency to low)
     const sortedBands = validBands.sort(
-      (a, b) => VALID_BANDS.indexOf(a.band) - VALID_BANDS.indexOf(b.band),
+      (a, b) =>
+        VALID_RANGES.indexOf(a.range as BandRange) -
+        VALID_RANGES.indexOf(b.range as BandRange),
     );
 
     return NextResponse.json({
