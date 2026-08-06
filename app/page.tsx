@@ -2,6 +2,7 @@
 
 import StatusBar from "@/components/status-bar";
 import AuroraGauge from "@/components/aurora-gauge";
+import CmeCountdown from "@/components/cme-countdown";
 import { useSpaceWeather } from "@/providers/space-weather-provider";
 import { severityFromKp } from "@/config/constants";
 
@@ -45,6 +46,8 @@ export default function OverviewPage() {
         <StatCard label="Active Alerts" value={String(alertCount)} />
         <StatCard label="Notable Flares" value={String(notableFlares)} />
       </div>
+
+      <CmeCountdown data={data} />
     </div>
   );
 }

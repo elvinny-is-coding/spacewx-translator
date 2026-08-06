@@ -122,45 +122,52 @@ export default function HfAdvisor({ data }: HfAdvisorProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isDebouncing, setIsDebouncing] = useState(false);
-  
+
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  const fetchBandData = useCallback(async (signal: AbortSignal, currentQth: string, currentTarget: string) => {
-    setError(null);
-    setIsLoading(true);
-    setIsDebouncing(false);
-
-    try {
-      const res = await fetch("/api/hf-advisory", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ qth: currentQth, target: currentTarget, data }),
-        signal,
-      });
-
-      if (!res.ok) throw new Error(`Failed (HTTP ${res.status})`);
-      const json = await res.json();
-      setBands(json.bands);
-      setSummary(json.summary);
-      saveToCache(currentQth, currentTarget, json.bands, json.summary || "");
-    } catch {
-      if (signal.aborted) return;
-      
-      const rScale = data.noaaScaleR ?? 0;
-      const kp = data.kp ?? 0;
-      const fallback = computeDeterministicBands(rScale, kp);
-      setBands(fallback);
-      setSummary(
-        "AI advisory unavailable — showing rule‑based estimates from NOAA scales.",
-      );
+  const fetchBandData = useCallback(
+    async (signal: AbortSignal, currentQth: string, currentTarget: string) => {
       setError(null);
-    } finally {
-      if (!signal.aborted) {
-        setIsLoading(false);
+      setIsLoading(true);
+      setIsDebouncing(false);
+
+      try {
+        const res = await fetch("/api/hf-advisory", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            qth: currentQth,
+            target: currentTarget,
+            data,
+          }),
+          signal,
+        });
+
+        if (!res.ok) throw new Error(`Failed (HTTP ${res.status})`);
+        const json = await res.json();
+        setBands(json.bands);
+        setSummary(json.summary);
+        saveToCache(currentQth, currentTarget, json.bands, json.summary || "");
+      } catch {
+        if (signal.aborted) return;
+
+        const rScale = data.noaaScaleR ?? 0;
+        const kp = data.kp ?? 0;
+        const fallback = computeDeterministicBands(rScale, kp);
+        setBands(fallback);
+        setSummary(
+          "AI advisory unavailable — showing rule‑based estimates from NOAA scales.",
+        );
+        setError(null);
+      } finally {
+        if (!signal.aborted) {
+          setIsLoading(false);
+        }
       }
-    }
-  }, [data]);
+    },
+    [data],
+  );
 
   useEffect(() => {
     const cached = loadFromCache(qth, target);
@@ -177,13 +184,13 @@ export default function HfAdvisor({ data }: HfAdvisorProps) {
     if (debounceRef.current) {
       clearTimeout(debounceRef.current);
     }
-    
+
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
     }
 
     setIsDebouncing(true);
-    
+
     debounceRef.current = setTimeout(() => {
       abortControllerRef.current = new AbortController();
       fetchBandData(abortControllerRef.current.signal, qth, target);
@@ -219,10 +226,17 @@ export default function HfAdvisor({ data }: HfAdvisorProps) {
         <div className="space-y-3">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <Label htmlFor="qth" className="text-sm text-faint-star font-medium">
+              <Label
+                htmlFor="qth"
+                className="text-sm text-faint-star font-medium"
+              >
                 Your Region
               </Label>
-              <Select value={qth} onValueChange={setQth} disabled={isLoading}>
+              <Select
+                value={qth}
+                onValueChange={(value) => setQth(value ?? "")}
+                disabled={isLoading}
+              >
                 <SelectTrigger
                   id="qth"
                   className="bg-void-navy border-deep-indigo text-starlight text-sm h-10"
@@ -239,12 +253,15 @@ export default function HfAdvisor({ data }: HfAdvisorProps) {
               </Select>
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="target" className="text-sm text-faint-star font-medium">
+              <Label
+                htmlFor="target"
+                className="text-sm text-faint-star font-medium"
+              >
                 Target Region
               </Label>
               <Select
                 value={target}
-                onValueChange={setTarget}
+                onValueChange={(value) => setTarget(value ?? "")}
                 disabled={isLoading}
               >
                 <SelectTrigger
@@ -268,7 +285,9 @@ export default function HfAdvisor({ data }: HfAdvisorProps) {
             <div className="flex items-center gap-2 text-xs text-faint-star py-2">
               <Loader2 size={14} className="animate-spin" />
               <span>
-                {isDebouncing ? "Updating..." : "Analyzing propagation conditions..."}
+                {isDebouncing
+                  ? "Updating..."
+                  : "Analyzing propagation conditions..."}
               </span>
             </div>
           )}
@@ -284,69 +303,83 @@ export default function HfAdvisor({ data }: HfAdvisorProps) {
             <div className="flex flex-col items-center justify-center py-10 text-center gap-3">
               <Radio size={40} className="text-faint-star/30" />
               <p className="text-sm text-faint-star max-w-[300px] leading-relaxed">
-                Select your regions above to see current HF propagation conditions.
+                Select your regions above to see current HF propagation
+                conditions.
               </p>
             </div>
           )}
 
-          {!isLoading && !isDebouncing && !error && bands && bands.length > 0 && (
-            <div className="space-y-4">
-              {/* Route display */}
-              <div className="flex items-center gap-2 px-3 py-2 bg-void-navy/30 rounded-lg border border-deep-indigo/50">
-                <span className="text-sm font-medium text-starlight">{qth}</span>
-                <ArrowRight size={16} className="text-faint-star" />
-                <span className="text-sm font-medium text-starlight">{target}</span>
-              </div>
-
-              {/* Summary */}
-              {summary && (
-                <div className="flex items-start gap-2 px-3 py-2 bg-aurora-green/10 rounded-lg border border-aurora-green/20">
-                  <Info size={16} className="text-aurora-green mt-0.5 shrink-0" />
-                  <p className="text-sm text-faint-star leading-relaxed">
-                    {summary}
-                  </p>
+          {!isLoading &&
+            !isDebouncing &&
+            !error &&
+            bands &&
+            bands.length > 0 && (
+              <div className="space-y-4">
+                {/* Route display */}
+                <div className="flex items-center gap-2 px-3 py-2 bg-void-navy/30 rounded-lg border border-deep-indigo/50">
+                  <span className="text-sm font-medium text-starlight">
+                    {qth}
+                  </span>
+                  <ArrowRight size={16} className="text-faint-star" />
+                  <span className="text-sm font-medium text-starlight">
+                    {target}
+                  </span>
                 </div>
-              )}
 
-              {/* Individual band cards */}
-              <div className="space-y-2">
-                {bands.map((b) => (
-                  <div
-                    key={b.range}
-                    className={`rounded-lg border p-4 transition-all hover:shadow-lg ${statusColor(b.status)}`}
-                  >
-                    <div className="flex items-start justify-between gap-3 mb-2">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-mono font-bold text-starlight">
-                          {b.range}
-                        </span>
-                        <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${statusColor(b.status)}`}>
-                          {statusLabel(b.status)}
-                        </span>
-                      </div>
-                      {b.driver && (
-                        <Tooltip>
-                          <TooltipTrigger className="text-faint-star/60 hover:text-faint-star transition-colors">
-                            <HelpCircle size={14} />
-                          </TooltipTrigger>
-                          <TooltipContent
-                            side="top"
-                            className="bg-deep-indigo border-void-navy text-starlight text-xs p-3 max-w-xs"
-                          >
-                            <div className="font-semibold mb-1">Driver</div>
-                            {b.driver}
-                          </TooltipContent>
-                        </Tooltip>
-                      )}
-                    </div>
+                {/* Summary */}
+                {summary && (
+                  <div className="flex items-start gap-2 px-3 py-2 bg-aurora-green/10 rounded-lg border border-aurora-green/20">
+                    <Info
+                      size={16}
+                      className="text-aurora-green mt-0.5 shrink-0"
+                    />
                     <p className="text-sm text-faint-star leading-relaxed">
-                      {b.note}
+                      {summary}
                     </p>
                   </div>
-                ))}
+                )}
+
+                {/* Individual band cards */}
+                <div className="space-y-2">
+                  {bands.map((b) => (
+                    <div
+                      key={b.range}
+                      className={`rounded-lg border p-4 transition-all hover:shadow-lg ${statusColor(b.status)}`}
+                    >
+                      <div className="flex items-start justify-between gap-3 mb-2">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-mono font-bold text-starlight">
+                            {b.range}
+                          </span>
+                          <span
+                            className={`text-xs font-semibold px-2 py-0.5 rounded-full ${statusColor(b.status)}`}
+                          >
+                            {statusLabel(b.status)}
+                          </span>
+                        </div>
+                        {b.driver && (
+                          <Tooltip>
+                            <TooltipTrigger className="text-faint-star/60 hover:text-faint-star transition-colors">
+                              <HelpCircle size={14} />
+                            </TooltipTrigger>
+                            <TooltipContent
+                              side="top"
+                              className="bg-deep-indigo border-void-navy text-starlight text-xs p-3 max-w-xs"
+                            >
+                              <div className="font-semibold mb-1">Driver</div>
+                              {b.driver}
+                            </TooltipContent>
+                          </Tooltip>
+                        )}
+                      </div>
+                      <p className="text-sm text-faint-star leading-relaxed">
+                        {b.note}
+                      </p>
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
-          )}
+            )}
         </div>
       </div>
     </TooltipProvider>

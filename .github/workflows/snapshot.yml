@@ -34,3 +34,10 @@ jobs:
             -H "x-cron-secret: ${{ secrets.CRON_SECRET }}" \
             -H "Content-Type: application/json" \
             --fail --silent --show-error
+
+      - name: Trigger storm postmortem check
+        run: |
+          curl -X POST https://spacewx-translator.vercel.app/api/cron/storm-postmortem \
+            -H "x-cron-secret: ${{ secrets.CRON_SECRET }}" \
+            -H "Content-Type: application/json" \
+            --fail --silent --show-error

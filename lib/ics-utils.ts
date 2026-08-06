@@ -106,3 +106,57 @@ export function generateAuroraCalendar(
 
   return calendar;
 }
+
+/**
+ * Generate an iCalendar (.ics) string for a single CME Earth-impact event.
+ *
+ * @param cmeSpeed          CME speed in km/s
+ * @param estimatedArrival   Estimated arrival time as an ISO 8601 string
+ * @param impactNarrative    AI-generated impact description (2‑3 sentences)
+ * @returns                  A valid .ics calendar string
+ */
+export function generateCmeCalendar(
+  cmeSpeed: number,
+  estimatedArrival: string,
+  impactNarrative: string,
+): string {
+  const start = new Date(estimatedArrival);
+  const end = new Date(start.getTime() + 2 * 60 * 60 * 1000); // 2‑hour window
+
+  const summary = escapeICSText(`CME Impact Expected (${cmeSpeed} km/s)`);
+  const description = escapeICSText(
+    [
+      `CME speed: ${cmeSpeed} km/s`,
+      `Estimated arrival: ${start.toUTCString()}`,
+      "",
+      impactNarrative,
+      "",
+      "This is an automated estimate. Actual arrival time may vary.",
+      "Monitor NOAA SWPC for official watches and warnings.",
+      "",
+      "Powered by Aura – Space Weather Intelligence",
+    ].join("\\n"),
+  );
+
+  const uid = `cme-${toICSDateTime(start)}-${cmeSpeed}km-s@aura.app`;
+
+  const event = [
+    "BEGIN:VEVENT",
+    `UID:${uid}`,
+    `DTSTART:${toICSDateTime(start)}`,
+    `DTEND:${toICSDateTime(end)}`,
+    `SUMMARY:${summary}`,
+    `DESCRIPTION:${description}`,
+    "TRANSP:TRANSPARENT",
+    "END:VEVENT",
+  ].join("\r\n");
+
+  return [
+    "BEGIN:VCALENDAR",
+    "VERSION:2.0",
+    "PRODID:-//Aura//CME-Impact//EN",
+    "METHOD:PUBLISH",
+    event,
+    "END:VCALENDAR",
+  ].join("\r\n");
+}

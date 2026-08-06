@@ -18,10 +18,8 @@ import {
   normalizeFlares,
   normalizeCMEs,
 } from "@/lib/spacewx/normalizers";
-import {
-  buildDailyBriefingPrompt,
-  buildRiskRecommendationsPrompt,
-} from "@/lib/ai/prompts";
+import { buildDailyBriefingPrompt } from "@/lib/ai/prompts";
+import { buildRiskRecommendationsPrompt } from "@/lib/ai/risk-scorecard-prompt";
 import { buildMissionAdvisoryPrompt } from "@/lib/ai/mission-advisory-prompt";
 import { getGraniteSummary } from "@/lib/ai/granite-client";
 import {
@@ -30,7 +28,6 @@ import {
 } from "@/lib/ai/cloudflare-client";
 import { reshapeOvationGrid } from "@/lib/aurora-utils";
 import { getSuggestedPrompts } from "@/lib/suggested-prompts";
-import { computeDeterministicAssessments } from "@/lib/spacewx/risk";
 import type { Audience } from "@/types/audience";
 import type { NotableEvent, DailyBriefingInput } from "@/lib/ai/prompts";
 import type { SpaceWeatherData } from "@/types/spacewx";
@@ -120,6 +117,61 @@ function deterministicDailyBriefing(input: DailyBriefingInput): string {
   }
   if (input.alertSummary) lines.push(input.alertSummary);
   return lines.join("\n");
+}
+
+// ── Deterministic risk assessment (matching the risk‑scorecard route) ──
+function computeDeterministicAssessments(data: SpaceWeatherData): {
+  assessments: { system: string; riskLevel: string; driver: string }[];
+} {
+  const kp = data.kp ?? 0;
+  const rScale = data.noaaScaleR ?? 0;
+  const sScale = data.noaaScaleS ?? 0;
+  const gScale = data.noaaScaleG ?? 0;
+  const hasXFlare = data.flares.some((f) =>
+    f.classType.toUpperCase().startsWith("X"),
+  );
+  const bz = data.solarWind?.bz ?? 0;
+  return {
+    assessments: [
+      {
+        system: "HF Communications",
+        riskLevel: rScale >= 2 ? "high" : rScale >= 1 ? "medium" : "low",
+        driver: rScale >= 1 ? `R${rScale} blackout` : "No radio blackout",
+      },
+      {
+        system: "GNSS",
+        riskLevel: kp >= 5 ? "medium" : "low",
+        driver:
+          kp >= 5 ? `Kp ${kp.toFixed(1)} scintillation` : "Quiet ionosphere",
+      },
+      {
+        system: "LEO Satellite Drag",
+        riskLevel: gScale >= 2 ? "high" : gScale >= 1 ? "medium" : "low",
+        driver: gScale >= 1 ? `G${gScale} storm` : "No geomagnetic storm",
+      },
+      {
+        system: "Power Grid",
+        riskLevel: gScale >= 3 ? "high" : bz < -10 ? "medium" : "low",
+        driver:
+          gScale >= 3
+            ? `G${gScale} storm`
+            : bz < -10
+              ? "Strong southward Bz"
+              : "No GIC risk",
+      },
+      {
+        system: "Polar Aviation",
+        riskLevel:
+          sScale >= 2 ? "high" : sScale >= 1 || hasXFlare ? "medium" : "low",
+        driver:
+          sScale >= 1
+            ? `S${sScale} radiation`
+            : hasXFlare
+              ? "X-class flare"
+              : "No radiation storm",
+      },
+    ],
+  };
 }
 
 // ── Route ──
@@ -320,7 +372,7 @@ export async function POST(request: NextRequest) {
     }
 
     // ── Generate risk scorecard ──
-    const deterministicAssessments =
+    const { assessments: deterministicAssessments } =
       computeDeterministicAssessments(spaceWeatherData);
 
     let aiRecommendations: string[] = [];
