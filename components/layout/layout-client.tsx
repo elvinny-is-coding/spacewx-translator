@@ -9,6 +9,7 @@ import AiSidebar from "@/components/layout/ai-sidebar";
 import { Toaster } from "sonner";
 import { Button } from "@/components/ui/button";
 import { PanelRightClose, PanelRightOpen } from "lucide-react";
+import { ErrorBoundary } from "@/components/error-boundary";
 import type { SpaceWeatherData } from "@/types/spacewx";
 
 function LayoutInner({ children }: { children: React.ReactNode }) {
@@ -18,7 +19,6 @@ function LayoutInner({ children }: { children: React.ReactNode }) {
     <div className="min-h-screen bg-void-navy font-body text-starlight antialiased">
       <NavBar />
       <AiSidebar />
-      {/* Toggle button – always visible, outside sidebar */}
       <Button
         variant="ghost"
         size="icon"
@@ -61,26 +61,28 @@ export default function ClientLayout({
   }, []);
 
   return (
-    <SidebarProvider>
-      {data ? (
-        <SpaceWeatherProvider data={data}>
-          <LayoutInner>{children}</LayoutInner>
-        </SpaceWeatherProvider>
-      ) : (
-        <div className="min-h-screen bg-void-navy flex items-center justify-center">
-          <p className="text-faint-star">Loading space weather data...</p>
-        </div>
-      )}
-      <Toaster
-        position="bottom-right"
-        toastOptions={{
-          style: {
-            background: "#131B33",
-            color: "#E7ECF5",
-            border: "1px solid #3ECF8E",
-          },
-        }}
-      />
-    </SidebarProvider>
+    <ErrorBoundary>
+      <SidebarProvider>
+        {data ? (
+          <SpaceWeatherProvider data={data}>
+            <LayoutInner>{children}</LayoutInner>
+          </SpaceWeatherProvider>
+        ) : (
+          <div className="min-h-screen bg-void-navy flex items-center justify-center">
+            <p className="text-faint-star">Loading space weather data...</p>
+          </div>
+        )}
+        <Toaster
+          position="bottom-right"
+          toastOptions={{
+            style: {
+              background: "#131B33",
+              color: "#E7ECF5",
+              border: "1px solid #3ECF8E",
+            },
+          }}
+        />
+      </SidebarProvider>
+    </ErrorBoundary>
   );
 }
