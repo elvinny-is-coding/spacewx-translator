@@ -53,7 +53,7 @@ export async function GET() {
         return result.value;
       }
       warnings.push(`${sourceName} data unavailable`);
-      console.warn(`⚠ ${sourceName} fetch failed`);
+      console.warn(`${sourceName} fetch failed`);
       return null;
     };
 

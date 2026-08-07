@@ -10,6 +10,9 @@ import {
 } from "@/config/constants";
 import { TIMEOUTS } from "@/lib/timeouts";
 
+const ICAO_ADVISORY_URL =
+  "https://services.swpc.noaa.gov/json/icao-space-weather-advisories.json";
+
 interface RetryConfig {
   maxRetries?: number;
   initialDelayMs?: number;
@@ -42,7 +45,6 @@ async function fetchWithRetry(
         signal: options.signal || AbortSignal.timeout(8000),
       });
 
-      // Don't retry on success or non-retryable errors
       if (
         response.ok ||
         !finalConfig.retryableStatuses.includes(response.status)
@@ -147,4 +149,9 @@ const NOAA_OVATION =
 
 export async function fetchOvation(): Promise<any> {
   return fetchJSON(NOAA_OVATION, TIMEOUTS.OVATION);
+}
+
+/** Fetch ICAO Space Weather Advisories (polar aviation). Returns empty array if none. */
+export async function fetchIcaoAdvisories(): Promise<any[]> {
+  return fetchJSON(ICAO_ADVISORY_URL, 5000);
 }

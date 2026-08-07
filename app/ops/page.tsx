@@ -5,6 +5,7 @@ import { useSpaceWeather } from "@/providers/space-weather-provider";
 import RiskScorecard from "@/components/risk-scorecard";
 import MissionAdvisor from "@/components/mission-advisor";
 import HfAdvisor from "@/components/hf-advisor";
+import PolarRouteStatus from "@/components/polar-route-status";
 import { Info } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 
@@ -32,7 +33,7 @@ export default function OpsPage() {
           <p className="text-xs text-faint-star leading-relaxed">
             <span className="font-medium text-starlight">Who this is for:</span>{" "}
             Satellite operators, flight dispatchers, ham radio operators, and
-            mission planners. If you’re looking for aurora forecasts or
+            mission planners. If you're looking for aurora forecasts or
             educational content, the{" "}
             <strong className="text-starlight">Aurora</strong> and{" "}
             <strong className="text-starlight">Forecast</strong> pages are a
@@ -50,6 +51,12 @@ export default function OpsPage() {
       <Card className="border-none bg-deep-indigo">
         <CardContent className="p-6">
           <RiskScorecard data={data} />
+        </CardContent>
+      </Card>
+
+      <Card className="border-none bg-deep-indigo">
+        <CardContent className="p-6">
+          <PolarRouteStatus />
         </CardContent>
       </Card>
 

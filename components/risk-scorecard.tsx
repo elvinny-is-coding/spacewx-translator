@@ -5,18 +5,32 @@ import { useState, useEffect } from "react";
 import type { SpaceWeatherData } from "@/types/spacewx";
 import type { RiskAssessment, RiskLevel } from "@/types/risk-scorecard";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ShieldAlert, Loader2, ChevronDown, ChevronUp, AlertTriangle, Info } from "lucide-react";
+import {
+  ShieldAlert,
+  Loader2,
+  ChevronDown,
+  ChevronUp,
+  AlertTriangle,
+  Info,
+  Radio,
+  Satellite,
+  Rocket,
+  Zap,
+  Plane,
+  Radar,
+  type LucideIcon,
+} from "lucide-react";
 
 interface RiskScorecardProps {
   data: SpaceWeatherData;
 }
 
-const SYSTEM_ICONS: Record<string, string> = {
-  "HF Communications": "📻",
-  GNSS: "🛰️",
-  "LEO Satellite Drag": "🛸",
-  "Power Grid": "⚡",
-  "Polar Aviation": "✈️",
+const SYSTEM_ICONS: Record<string, LucideIcon> = {
+  "HF Communications": Radio,
+  GNSS: Satellite,
+  "LEO Satellite Drag": Rocket,
+  "Power Grid": Zap,
+  "Polar Aviation": Plane,
 };
 
 const RISK_LEVELS: RiskLevel[] = ["low", "medium", "high", "critical"];
@@ -262,6 +276,7 @@ export default function RiskScorecard({ data }: RiskScorecardProps) {
       <div className="space-y-2">
         {assessments.map((a, i) => {
           const isExpanded = expandedCards.has(a.system);
+          const SystemIcon = SYSTEM_ICONS[a.system] ?? Radar;
           return (
             <div
               key={`${a.system}-${i}`}
@@ -271,9 +286,11 @@ export default function RiskScorecard({ data }: RiskScorecardProps) {
               }`}
             >
               <div className="flex items-start gap-3">
-                <span className="text-xl" role="img" aria-hidden="true">
-                  {SYSTEM_ICONS[a.system] || "📡"}
-                </span>
+                <SystemIcon
+                  size={20}
+                  className="mt-0.5 shrink-0 text-current"
+                  aria-hidden="true"
+                />
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-sm font-semibold text-starlight dark:text-starlight">

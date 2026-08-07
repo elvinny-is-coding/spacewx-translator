@@ -43,7 +43,7 @@ function generateFallbackSummary(
 
     case "technical":
       if (data.kp === null)
-        return "⚠ Space weather data feed interrupted. Exercise caution for satellite operations and HF communications until data is restored.";
+        return "Warning: Space weather data feed interrupted. Exercise caution for satellite operations and HF communications until data is restored.";
 
       const impactMessage =
         data.kp < 4
