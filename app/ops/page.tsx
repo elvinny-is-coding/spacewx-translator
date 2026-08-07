@@ -5,6 +5,7 @@ import { useState } from "react";
 import { useSpaceWeather } from "@/providers/space-weather-provider";
 import RiskScorecard from "@/components/risk-scorecard";
 import MissionAdvisor from "@/components/mission-advisor";
+import MissionImpactSimulator from "@/components/mission-impact-simulator";
 import HfAdvisor from "@/components/hf-advisor";
 import PolarRouteBrief from "@/components/polar-route-brief";
 import { Info } from "lucide-react";
@@ -47,6 +48,12 @@ export default function OpsPage() {
       <Card className="border-none bg-deep-indigo">
         <CardContent className="p-6">
           <MissionAdvisor data={data} />
+        </CardContent>
+      </Card>
+
+      <Card className="border-none bg-deep-indigo">
+        <CardContent className="p-6">
+          <MissionImpactSimulator data={data} />
         </CardContent>
       </Card>
 

@@ -24,7 +24,7 @@ function formatForecast(data: SpaceWeatherData): string {
   return points;
 }
 
-const MISSION_GUIDANCE: Record<MissionType, string> = {
+export const MISSION_GUIDANCE: Record<MissionType, string> = {
   "CubeSat Launch":
     "A CubeSat launch requires Kp < 5 for safe deployment and minimal atmospheric drag during early orbit. G‑scale should be G0 or G1. No active radiation storms (S‑scale must be S0). Any X‑class flare in the past 24h is a no‑go.",
   "HF Operation":
