@@ -11,6 +11,7 @@ import {
   Calendar,
   Bell,
   Satellite,
+  GraduationCap,
 } from "lucide-react";
 import ThemeToggle from "@/components/theme-toggle";
 
@@ -40,6 +41,12 @@ const NAV_ITEMS = [
     label: "Operations",
     icon: Satellite,
     ariaLabel: "Operations Center",
+  },
+  {
+    href: "/classroom",
+    label: "Classroom",
+    icon: GraduationCap,
+    ariaLabel: "Mission Control Classroom",
   },
 ];
 

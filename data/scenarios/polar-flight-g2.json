@@ -1,0 +1,24 @@
+{
+  "id": "polar-flight-g2",
+  "title": "Polar Flight Decision — G2 Storm Incoming",
+  "date": "2024-09-12",
+  "description": "A G2 geomagnetic storm is forecast to begin within six hours on a busy North America–Asia polar route. Kp is currently 3 but forecast to reach 6. Do you reroute flights southward, or proceed via the polar corridor to save fuel?",
+  "snapshot": {
+    "kp": 3,
+    "noaaScaleG": 2,
+    "noaaScaleR": 1,
+    "noaaScaleS": 0,
+    "solarWindSpeed": 600,
+    "solarWindBz": -12,
+    "flares": [{ "classType": "M6.7", "beginTime": "2024-09-12T08:00Z" }],
+    "cmes": [
+      {
+        "speed": 800,
+        "note": "Earth-directed CME, estimated arrival in 6h",
+        "startTime": "2024-09-12T06:00Z"
+      }
+    ]
+  },
+  "deterministicVerdict": "CONDITIONAL GO",
+  "historicalOutcome": "Dispatchers who rerouted saved fuel costs but avoided the worst HF blackouts. Flights that stayed on the polar route experienced 20–40 minute communication outages."
+}

@@ -1,0 +1,27 @@
+{
+  "id": "quebec-blackout-1989",
+  "title": "The Quebec Blackout — March 1989",
+  "date": "1989-03-13",
+  "description": "A powerful CME caused a G5 geomagnetic storm that knocked out the Hydro‑Québec power grid for nine hours, leaving six million people without electricity.",
+  "snapshot": {
+    "kp": 9,
+    "noaaScaleG": 5,
+    "noaaScaleR": 2,
+    "noaaScaleS": 2,
+    "solarWindSpeed": 700,
+    "solarWindBz": -20,
+    "flares": [
+      { "classType": "X15.0", "beginTime": "1989-03-06T14:00Z" },
+      { "classType": "M7.3", "beginTime": "1989-03-10T19:00Z" }
+    ],
+    "cmes": [
+      {
+        "speed": 1000,
+        "note": "Earth-directed halo CME",
+        "startTime": "1989-03-10T19:00Z"
+      }
+    ]
+  },
+  "deterministicVerdict": "NO GO",
+  "historicalOutcome": "The Hydro‑Québec power grid collapsed in 90 seconds. Six million customers lost power for nine hours. A large power transformer in New Jersey was permanently damaged."
+}

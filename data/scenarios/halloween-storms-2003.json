@@ -1,0 +1,33 @@
+{
+  "id": "halloween-storms-2003",
+  "title": "The Halloween Storms — October 2003",
+  "date": "2003-10-28",
+  "description": "A series of powerful X-class flares and CMEs triggered a G5 geomagnetic storm. Satellite operations were severely impacted, and aviation was rerouted away from polar routes.",
+  "snapshot": {
+    "kp": 9,
+    "noaaScaleG": 5,
+    "noaaScaleR": 4,
+    "noaaScaleS": 3,
+    "solarWindSpeed": 850,
+    "solarWindBz": -30,
+    "flares": [
+      { "classType": "X17.2", "beginTime": "2003-10-28T11:10Z" },
+      { "classType": "X10.0", "beginTime": "2003-10-29T20:49Z" },
+      { "classType": "X8.3", "beginTime": "2003-11-02T17:25Z" }
+    ],
+    "cmes": [
+      {
+        "speed": 1800,
+        "note": "Earth-directed halo CME",
+        "startTime": "2003-10-28T11:00Z"
+      },
+      {
+        "speed": 1400,
+        "note": "Full halo CME",
+        "startTime": "2003-10-29T21:00Z"
+      }
+    ]
+  },
+  "deterministicVerdict": "NO GO",
+  "historicalOutcome": "The Japanese ADEOS-2 satellite was permanently disabled. Airlines rerouted polar flights at an estimated cost of $10,000–$100,000 per flight. Power grid anomalies reported in Sweden."
+}

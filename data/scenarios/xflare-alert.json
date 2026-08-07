@@ -1,0 +1,24 @@
+{
+  "id": "xflare-alert",
+  "title": "X-Flare Alert — Satellite Operations",
+  "date": "2024-01-09",
+  "description": "An X3.3 flare just erupted from AR 3576 with a fast Earth-directed CME. Your GEO communications satellite is in its path. Kp is still 1.0, but the storm hasn't arrived yet. Do you put the satellite in safe mode?",
+  "snapshot": {
+    "kp": 1,
+    "noaaScaleG": 0,
+    "noaaScaleR": 3,
+    "noaaScaleS": 1,
+    "solarWindSpeed": 320,
+    "solarWindBz": -1,
+    "flares": [{ "classType": "X3.3", "beginTime": "2024-01-09T12:00Z" }],
+    "cmes": [
+      {
+        "speed": 1100,
+        "note": "Full halo CME, estimated arrival in 36h",
+        "startTime": "2024-01-09T12:30Z"
+      }
+    ]
+  },
+  "deterministicVerdict": "CONDITIONAL GO",
+  "historicalOutcome": "Some operators entered safe mode pre‑emptively and saved their satellites. Others waited and experienced minor anomalies. The CME arrived on schedule, producing a G3 storm."
+}

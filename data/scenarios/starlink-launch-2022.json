@@ -1,0 +1,24 @@
+{
+  "id": "starlink-launch-2022",
+  "title": "Starlink Launch — February 2022",
+  "date": "2022-02-03",
+  "description": "SpaceX launched 49 Starlink satellites into a 'minor' geomagnetic storm. Atmospheric drag increased dramatically, and 38 of the 49 satellites were lost. A lesson in taking even modest space weather seriously.",
+  "snapshot": {
+    "kp": 5,
+    "noaaScaleG": 1,
+    "noaaScaleR": 0,
+    "noaaScaleS": 0,
+    "solarWindSpeed": 550,
+    "solarWindBz": -15,
+    "flares": [{ "classType": "M1.1", "beginTime": "2022-01-30T00:00Z" }],
+    "cmes": [
+      {
+        "speed": 650,
+        "note": "Partial halo CME",
+        "startTime": "2022-01-30T12:00Z"
+      }
+    ]
+  },
+  "deterministicVerdict": "CONDITIONAL GO",
+  "historicalOutcome": "SpaceX launched despite the CME watch. 38 of 49 Starlink satellites never reached operational orbit due to increased atmospheric drag at 210 km. Estimated loss: $50–100 million."
+}

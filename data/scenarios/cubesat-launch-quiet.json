@@ -1,0 +1,18 @@
+{
+  "id": "cubesat-launch-quiet",
+  "title": "CubeSat Launch — Pristine Conditions",
+  "date": "2024-07-20",
+  "description": "Your university CubeSat team finally has a launch window. Solar activity is at a minimum — no flares, no CMEs, Kp is 0.7. This is as good as it gets. Proceed with the launch?",
+  "snapshot": {
+    "kp": 0.7,
+    "noaaScaleG": 0,
+    "noaaScaleR": 0,
+    "noaaScaleS": 0,
+    "solarWindSpeed": 280,
+    "solarWindBz": 2,
+    "flares": [],
+    "cmes": []
+  },
+  "deterministicVerdict": "GO",
+  "historicalOutcome": "Ideal launch conditions. This scenario reinforces that most days are quiet and the correct call is often to proceed normally."
+}

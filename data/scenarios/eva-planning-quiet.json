@@ -1,0 +1,18 @@
+{
+  "id": "eva-planning-quiet",
+  "title": "ISS EVA Planning — Quiet Conditions",
+  "date": "2024-06-15",
+  "description": "A routine ISS maintenance EVA is scheduled. Conditions are quiet with no active storms, but a small M-class flare occurred 12 hours ago. Should the EVA proceed as planned?",
+  "snapshot": {
+    "kp": 2,
+    "noaaScaleG": 0,
+    "noaaScaleR": 0,
+    "noaaScaleS": 0,
+    "solarWindSpeed": 350,
+    "solarWindBz": -2,
+    "flares": [{ "classType": "M2.5", "beginTime": "2024-06-15T02:00Z" }],
+    "cmes": []
+  },
+  "deterministicVerdict": "GO",
+  "historicalOutcome": "This is a constructed 'quiet but tempting' scenario. The M-class flare was minor and occurred hours ago with no associated CME. The EVA would proceed normally."
+}

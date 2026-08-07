@@ -1,0 +1,32 @@
+{
+  "id": "gannon-storm-2024",
+  "title": "The Gannon Storm — May 2024",
+  "date": "2024-05-10",
+  "description": "A G5 extreme geomagnetic storm — the strongest in 20 years. Aurora visible as far south as Florida. Satellites experienced drag anomalies and communications disruptions worldwide.",
+  "snapshot": {
+    "kp": 9,
+    "noaaScaleG": 5,
+    "noaaScaleR": 3,
+    "noaaScaleS": 2,
+    "solarWindSpeed": 750,
+    "solarWindBz": -25,
+    "flares": [
+      { "classType": "X2.2", "beginTime": "2024-05-09T09:13Z" },
+      { "classType": "X1.0", "beginTime": "2024-05-09T17:44Z" }
+    ],
+    "cmes": [
+      {
+        "speed": 1200,
+        "note": "Earth-directed full halo CME",
+        "startTime": "2024-05-08T12:00Z"
+      },
+      {
+        "speed": 900,
+        "note": "Partial halo CME",
+        "startTime": "2024-05-09T06:00Z"
+      }
+    ]
+  },
+  "deterministicVerdict": "NO GO",
+  "historicalOutcome": "Widespread aurora sightings across all 50 US states. Starlink reported degraded service. Multiple satellites entered safe mode. Power grid operators in northern latitudes activated contingency plans."
+}

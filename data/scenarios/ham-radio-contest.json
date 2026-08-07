@@ -1,0 +1,24 @@
+{
+  "id": "ham-radio-contest",
+  "title": "Ham Radio Contest — Active Solar Region",
+  "date": "2024-11-23",
+  "description": "A major international DX contest is underway. Kp is currently 2, but an active solar region just produced an M5 flare and a fast CME is Earth-directed. The 20m band is still open. Do you continue operating or pause?",
+  "snapshot": {
+    "kp": 2,
+    "noaaScaleG": 0,
+    "noaaScaleR": 1,
+    "noaaScaleS": 0,
+    "solarWindSpeed": 400,
+    "solarWindBz": -5,
+    "flares": [{ "classType": "M5.2", "beginTime": "2024-11-23T14:00Z" }],
+    "cmes": [
+      {
+        "speed": 700,
+        "note": "Earth-directed partial halo",
+        "startTime": "2024-11-23T14:30Z"
+      }
+    ]
+  },
+  "deterministicVerdict": "CONDITIONAL GO",
+  "historicalOutcome": "Operators who continued experienced brief fadeouts but made many contacts during the disturbed conditions. Those who paused missed peak propagation windows."
+}

@@ -1,0 +1,24 @@
+{
+  "id": "bastille-day-2000",
+  "title": "The Bastille Day Event — July 2000",
+  "date": "2000-07-14",
+  "description": "A major X5.7 solar flare and Earth-directed CME triggered a severe G5 geomagnetic storm and an S3 radiation storm, causing significant satellite anomalies and global radio blackouts.",
+  "snapshot": {
+    "kp": 9,
+    "noaaScaleG": 5,
+    "noaaScaleR": 3,
+    "noaaScaleS": 3,
+    "solarWindSpeed": 1050,
+    "solarWindBz": -32,
+    "flares": [{ "classType": "X5.7", "beginTime": "2000-07-14T10:03Z" }],
+    "cmes": [
+      {
+        "speed": 1500,
+        "note": "Earth-directed full halo CME",
+        "startTime": "2000-07-14T10:54Z"
+      }
+    ]
+  },
+  "deterministicVerdict": "NO GO",
+  "historicalOutcome": "The SOHO satellite was temporarily blinded by a severe solar proton bombardment. Several satellites experienced short circuits and power degradation. High-frequency radio communication was lost over the polar regions for three days."
+}

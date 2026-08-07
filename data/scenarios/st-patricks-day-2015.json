@@ -1,0 +1,24 @@
+{
+  "id": "st-patricks-day-2015",
+  "title": "St. Patrick's Day Storm — March 2015",
+  "date": "2015-03-17",
+  "description": "The strongest geomagnetic storm of Solar Cycle 24. A relatively slow CME packed a highly effective magnetic punch due to a prolonged, strongly southward interplanetary magnetic field (Bz).",
+  "snapshot": {
+    "kp": 8,
+    "noaaScaleG": 4,
+    "noaaScaleR": 0,
+    "noaaScaleS": 0,
+    "solarWindSpeed": 650,
+    "solarWindBz": -24,
+    "flares": [{ "classType": "C9.1", "beginTime": "2015-03-15T02:10Z" }],
+    "cmes": [
+      {
+        "speed": 668,
+        "note": "Earth-directed partial halo CME",
+        "startTime": "2015-03-15T02:18Z"
+      }
+    ]
+  },
+  "deterministicVerdict": "NO GO",
+  "historicalOutcome": "Widespread aurora sightings occurred as far south as Colorado. Satellite operators reported significantly increased atmospheric drag. Minor geomagnetically induced currents (GICs) were detected in power grids, but no major outages occurred."
+}
