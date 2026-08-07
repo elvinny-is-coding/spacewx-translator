@@ -23,13 +23,102 @@ function repairJSON(raw: string): string {
   return fixed;
 }
 
+function deterministicImpact(
+  request: MissionImpactRequest,
+  data: SpaceWeatherData,
+): MissionImpactResponse {
+  const kp = data?.kp ?? 0;
+  const rScale = data?.noaaScaleR ?? 0;
+  const sScale = data?.noaaScaleS ?? 0;
+  const gScale = data?.noaaScaleG ?? 0;
+  const hasXFlare =
+    data?.flares?.some((f) => f.classType.toUpperCase().startsWith("X")) ??
+    false;
+
+  // Simple heuristic verdict
+  let verdict: MissionImpactResponse["verdict"] = "GO";
+  if (
+    kp >= 5 ||
+    sScale >= 1 ||
+    gScale >= 2 ||
+    (hasXFlare && request?.tolerance !== "flexible")
+  ) {
+    verdict = "CONDITIONAL GO";
+  }
+  if (
+    kp >= 7 ||
+    sScale >= 2 ||
+    gScale >= 3 ||
+    (hasXFlare && request?.tolerance === "strict")
+  ) {
+    verdict = "NO GO";
+  }
+
+  const risks: MissionImpactResponse["risks"] = [];
+  if (rScale >= 1)
+    risks.push({
+      name: "HF blackout",
+      severity: rScale >= 2 ? "high" : "medium",
+      description: "Radio blackout on sunlit side may affect communications.",
+    });
+  if (gScale >= 1)
+    risks.push({
+      name: "Geomagnetic storm",
+      severity: gScale >= 2 ? "high" : "medium",
+      description: "Increased satellite drag and possible GNSS degradation.",
+    });
+  if (sScale >= 1)
+    risks.push({
+      name: "Radiation storm",
+      severity: sScale >= 2 ? "high" : "medium",
+      description:
+        "Energetic proton flux elevated — risk to spacecraft electronics and polar aviation.",
+    });
+  if (kp >= 4)
+    risks.push({
+      name: "Elevated Kp",
+      severity: kp >= 6 ? "high" : "medium",
+      description: "Enhanced auroral activity and ionospheric disturbance.",
+    });
+  if (risks.length === 0)
+    risks.push({
+      name: "Quiet conditions",
+      severity: "low",
+      description: "No significant space weather risks identified.",
+    });
+
+  const missionType = request?.missionType || "Mission";
+
+  return {
+    verdict,
+    confidence: 0.5,
+    risks,
+    mitigations:
+      verdict !== "GO"
+        ? [
+            "Monitor NOAA SWPC for updates.",
+            "Consider delaying if mission flexibility allows.",
+          ]
+        : [],
+    changeCondition:
+      verdict !== "GO"
+        ? "If Kp drops below 4 and no radiation storm is active, conditions improve."
+        : "No change expected — conditions are quiet.",
+    summary: `Space weather assessment for ${missionType}: Kp ${kp.toFixed(
+      1,
+    )}, G${gScale}/R${rScale}/S${sScale}. Verdict: ${verdict}.`,
+    generatedAt: new Date().toISOString(),
+  };
+}
+
 export async function POST(request: NextRequest) {
+  let missionRequest: MissionImpactRequest | undefined;
+  let data: SpaceWeatherData | undefined;
+
   try {
     const body = await request.json();
-    const { missionRequest, data } = body as {
-      missionRequest: MissionImpactRequest;
-      data: SpaceWeatherData;
-    };
+    missionRequest = body?.missionRequest;
+    data = body?.data;
 
     if (!missionRequest || !data) {
       return NextResponse.json(
@@ -102,10 +191,11 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ impact: parsed });
   } catch (err: any) {
-    console.error("Mission impact error:", err);
-    return NextResponse.json(
-      { error: "Failed to generate mission impact assessment" },
-      { status: 500 },
+    console.warn(
+      "Mission impact AI failed, using deterministic fallback:",
+      err.message,
     );
+    const fallback = deterministicImpact(missionRequest!, data!);
+    return NextResponse.json({ impact: fallback });
   }
 }

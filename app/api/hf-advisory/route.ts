@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCloudflareChatResponse } from "@/lib/ai/cloudflare-client";
 import { buildHfAdvisoryPrompt } from "@/lib/ai/hf-advisory-prompt";
+import { computeDeterministicBands } from "@/lib/spacewx/hf-deterministic";
 import type { SpaceWeatherData } from "@/types/spacewx";
 import type {
   BandRange,
@@ -38,13 +39,15 @@ function repairJSON(raw: string): string {
 }
 
 export async function POST(request: NextRequest) {
+  let qth = "";
+  let target = "";
+  let data: SpaceWeatherData | undefined;
+
   try {
     const body = await request.json();
-    const { qth, target, data } = body as {
-      qth: string;
-      target: string;
-      data: SpaceWeatherData;
-    };
+    qth = body?.qth ?? "";
+    target = body?.target ?? "";
+    data = body?.data;
 
     if (!qth || !target || !data) {
       return NextResponse.json(
@@ -110,10 +113,20 @@ export async function POST(request: NextRequest) {
       generatedAt: new Date().toISOString(),
     });
   } catch (err: any) {
-    console.error("HF advisory error:", err);
-    return NextResponse.json(
-      { error: "Failed to generate HF advisory" },
-      { status: 500 },
+    console.warn(
+      "HF advisory AI failed, using deterministic fallback:",
+      err.message,
     );
+    const rScale = data?.noaaScaleR ?? 0;
+    const kp = data?.kp ?? 0;
+    const fallback = computeDeterministicBands(rScale, kp);
+    return NextResponse.json({
+      qth,
+      target,
+      bands: fallback,
+      summary:
+        "AI advisory unavailable — showing rule‑based estimates from NOAA scales.",
+      generatedAt: new Date().toISOString(),
+    });
   }
 }

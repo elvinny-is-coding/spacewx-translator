@@ -30,7 +30,6 @@ import {
   Shield,
   ChevronRight,
   Target,
-  Calendar,
   Zap,
 } from "lucide-react";
 
@@ -120,9 +119,44 @@ export default function MissionImpactSimulator({
   const [timeWindowEnd, setTimeWindowEnd] = useState("");
   const [altitudeKm, setAltitudeKm] = useState("");
   const [tolerance, setTolerance] = useState<ToleranceLevel>("moderate");
+  const [selectedPreset, setSelectedPreset] = useState<string>("");
   const [impact, setImpact] = useState<MissionImpactResponse | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const handlePresetChange = (preset: string) => {
+    setSelectedPreset(preset);
+    const now = new Date();
+    let startTime = now;
+    let endTime = now;
+
+    switch (preset) {
+      case "next-24h":
+        endTime = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+        break;
+      case "next-48h":
+        endTime = new Date(now.getTime() + 48 * 60 * 60 * 1000);
+        break;
+      case "next-7d":
+        endTime = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+        break;
+      case "next-14d":
+        endTime = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000);
+        break;
+      case "next-30d":
+        endTime = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+        break;
+      case "today":
+        startTime = new Date(now.setHours(0, 0, 0, 0));
+        endTime = new Date(now.setHours(23, 59, 59, 999));
+        break;
+      default:
+        return;
+    }
+
+    setTimeWindowStart(startTime.toISOString().slice(0, 16));
+    setTimeWindowEnd(endTime.toISOString().slice(0, 16));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -195,55 +229,50 @@ export default function MissionImpactSimulator({
             </Select>
           </div>
 
-          {/* Tolerance */}
+          {/* Tolerance - Segmented Control */}
           <div className="space-y-1.5">
             <Label className="text-sm text-starlight font-medium dark:text-starlight">Risk Tolerance</Label>
-            <Select
-              value={tolerance}
-              onValueChange={(val) => setTolerance(val as ToleranceLevel)}
-              disabled={isLoading}
-            >
-              <SelectTrigger className="bg-void-navy border-deep-indigo text-starlight text-sm h-10 w-full dark:bg-void-navy dark:border-deep-indigo dark:text-starlight">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent className="bg-deep-indigo border-void-navy text-starlight dark:bg-deep-indigo dark:border-void-navy dark:text-starlight">
-                {TOLERANCE_LEVELS.map((t) => (
-                  <SelectItem key={t} value={t}>
-                    {toleranceDisplayLabel(t)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="grid grid-cols-3 gap-2">
+              {TOLERANCE_LEVELS.map((t) => (
+                <button
+                  key={t}
+                  type="button"
+                  onClick={() => setTolerance(t)}
+                  disabled={isLoading}
+                  className={`px-3 py-2 text-sm font-medium rounded-lg border transition-all ${
+                    tolerance === t
+                      ? "bg-aurora-green text-void-navy border-aurora-green shadow-sm"
+                      : "bg-void-navy text-faint-star border-deep-indigo hover:bg-deep-indigo/50 dark:bg-void-navy dark:text-faint-star dark:border-deep-indigo dark:hover:bg-deep-indigo/50"
+                  }`}
+                >
+                  {toleranceDisplayLabel(t)}
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* Time window start */}
           <div className="space-y-1.5">
             <Label className="text-sm text-starlight font-medium dark:text-starlight">Time Window Start</Label>
-            <div className="relative">
-              <Input
-                type="datetime-local"
-                value={timeWindowStart}
-                onChange={(e) => setTimeWindowStart(e.target.value)}
-                disabled={isLoading}
-                className="bg-void-navy border-deep-indigo text-starlight text-sm h-10 w-full dark:bg-void-navy dark:border-deep-indigo dark:text-starlight"
-              />
-              <Calendar size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-faint-star pointer-events-none dark:text-faint-star" />
-            </div>
+            <Input
+              type="datetime-local"
+              value={timeWindowStart}
+              onChange={(e) => setTimeWindowStart(e.target.value)}
+              disabled={isLoading}
+              className="bg-void-navy border-deep-indigo text-starlight text-sm h-10 w-full dark:bg-void-navy dark:border-deep-indigo dark:text-starlight"
+            />
           </div>
 
           {/* Time window end */}
           <div className="space-y-1.5">
             <Label className="text-sm text-starlight font-medium dark:text-starlight">Time Window End</Label>
-            <div className="relative">
-              <Input
-                type="datetime-local"
-                value={timeWindowEnd}
-                onChange={(e) => setTimeWindowEnd(e.target.value)}
-                disabled={isLoading}
-                className="bg-void-navy border-deep-indigo text-starlight text-sm h-10 w-full dark:bg-void-navy dark:border-deep-indigo dark:text-starlight"
-              />
-              <Calendar size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-faint-star pointer-events-none dark:text-faint-star" />
-            </div>
+            <Input
+              type="datetime-local"
+              value={timeWindowEnd}
+              onChange={(e) => setTimeWindowEnd(e.target.value)}
+              disabled={isLoading}
+              className="bg-void-navy border-deep-indigo text-starlight text-sm h-10 w-full dark:bg-void-navy dark:border-deep-indigo dark:text-starlight"
+            />
           </div>
 
           {/* Altitude with unit adornment */}
@@ -265,40 +294,23 @@ export default function MissionImpactSimulator({
           {/* Quick preset */}
           <div className="space-y-1.5">
             <Label className="text-sm text-starlight font-medium dark:text-starlight">Quick Preset</Label>
-            <div className="flex gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  const now = new Date();
-                  const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
-                  setTimeWindowStart(now.toISOString().slice(0, 16));
-                  setTimeWindowEnd(tomorrow.toISOString().slice(0, 16));
-                }}
-                disabled={isLoading}
-                className="flex-1 border-deep-indigo text-starlight hover:bg-deep-indigo/50 dark:border-deep-indigo dark:text-starlight dark:hover:bg-deep-indigo/50"
-              >
-                <Clock size={14} className="mr-1" />
-                Next 24h
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  const now = new Date();
-                  const nextWeek = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
-                  setTimeWindowStart(now.toISOString().slice(0, 16));
-                  setTimeWindowEnd(nextWeek.toISOString().slice(0, 16));
-                }}
-                disabled={isLoading}
-                className="flex-1 border-deep-indigo text-starlight hover:bg-deep-indigo/50 dark:border-deep-indigo dark:text-starlight dark:hover:bg-deep-indigo/50"
-              >
-                <Zap size={14} className="mr-1" />
-                7 Days
-              </Button>
-            </div>
+            <Select
+              value={selectedPreset}
+              onValueChange={handlePresetChange}
+              disabled={isLoading}
+            >
+              <SelectTrigger className="bg-void-navy border-deep-indigo text-starlight text-sm h-10 w-full dark:bg-void-navy dark:border-deep-indigo dark:text-starlight">
+                <SelectValue placeholder="Select a time preset" />
+              </SelectTrigger>
+              <SelectContent className="bg-deep-indigo border-void-navy text-starlight dark:bg-deep-indigo dark:border-void-navy dark:text-starlight">
+                <SelectItem value="today">Today</SelectItem>
+                <SelectItem value="next-24h">Next 24 Hours</SelectItem>
+                <SelectItem value="next-48h">Next 48 Hours</SelectItem>
+                <SelectItem value="next-7d">Next 7 Days</SelectItem>
+                <SelectItem value="next-14d">Next 14 Days</SelectItem>
+                <SelectItem value="next-30d">Next 30 Days</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </div>
 
