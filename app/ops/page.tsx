@@ -6,7 +6,7 @@ import { useSpaceWeather } from "@/providers/space-weather-provider";
 import RiskScorecard from "@/components/risk-scorecard";
 import MissionAdvisor from "@/components/mission-advisor";
 import HfAdvisor from "@/components/hf-advisor";
-import PolarRouteStatus from "@/components/polar-route-status";
+import PolarRouteBrief from "@/components/polar-route-brief";
 import { Info } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 
@@ -61,7 +61,7 @@ export default function OpsPage() {
 
       <Card className="border-none bg-deep-indigo">
         <CardContent className="p-6">
-          <PolarRouteStatus onAdvisoryChange={setPolarAdvisoryActive} />
+          <PolarRouteBrief onAdvisoryChange={setPolarAdvisoryActive} />
         </CardContent>
       </Card>
 
