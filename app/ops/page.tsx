@@ -1,6 +1,7 @@
 // app/ops/page.tsx
 "use client";
 
+import { useState } from "react";
 import { useSpaceWeather } from "@/providers/space-weather-provider";
 import RiskScorecard from "@/components/risk-scorecard";
 import MissionAdvisor from "@/components/mission-advisor";
@@ -11,6 +12,7 @@ import { Card, CardContent } from "@/components/ui/card";
 
 export default function OpsPage() {
   const data = useSpaceWeather();
+  const [polarAdvisoryActive, setPolarAdvisoryActive] = useState(false);
 
   return (
     <div className="space-y-8">
@@ -50,13 +52,16 @@ export default function OpsPage() {
 
       <Card className="border-none bg-deep-indigo">
         <CardContent className="p-6">
-          <RiskScorecard data={data} />
+          <RiskScorecard
+            data={data}
+            polarAdvisoryActive={polarAdvisoryActive}
+          />
         </CardContent>
       </Card>
 
       <Card className="border-none bg-deep-indigo">
         <CardContent className="p-6">
-          <PolarRouteStatus />
+          <PolarRouteStatus onAdvisoryChange={setPolarAdvisoryActive} />
         </CardContent>
       </Card>
 

@@ -7,7 +7,6 @@ import type { RiskAssessment, RiskLevel } from "@/types/risk-scorecard";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   ShieldAlert,
-  Loader2,
   ChevronDown,
   ChevronUp,
   AlertTriangle,
@@ -23,6 +22,7 @@ import {
 
 interface RiskScorecardProps {
   data: SpaceWeatherData;
+  polarAdvisoryActive?: boolean;
 }
 
 const SYSTEM_ICONS: Record<string, LucideIcon> = {
@@ -101,7 +101,9 @@ function calculateOverallRisk(assessments: RiskAssessment[]): {
     0,
   );
   const averageScore = totalScore / assessments.length;
-  const criticalCount = assessments.filter((a) => a.riskLevel === "critical").length;
+  const criticalCount = assessments.filter(
+    (a) => a.riskLevel === "critical",
+  ).length;
   const highCount = assessments.filter((a) => a.riskLevel === "high").length;
 
   let level: RiskLevel;
@@ -115,10 +117,18 @@ function calculateOverallRisk(assessments: RiskAssessment[]): {
     level = "low";
   }
 
-  return { level, score: Math.round(averageScore * 10) / 10, criticalCount, highCount };
+  return {
+    level,
+    score: Math.round(averageScore * 10) / 10,
+    criticalCount,
+    highCount,
+  };
 }
 
-export default function RiskScorecard({ data }: RiskScorecardProps) {
+export default function RiskScorecard({
+  data,
+  polarAdvisoryActive = false,
+}: RiskScorecardProps) {
   const [assessments, setAssessments] = useState<RiskAssessment[] | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -184,7 +194,10 @@ export default function RiskScorecard({ data }: RiskScorecardProps) {
     return (
       <div className="space-y-4">
         <div className="flex items-center gap-2">
-          <ShieldAlert size={18} className="text-aurora-green dark:text-aurora-green" />
+          <ShieldAlert
+            size={18}
+            className="text-aurora-green dark:text-aurora-green"
+          />
           <h4 className="text-base font-semibold text-starlight dark:text-starlight">
             Operational Risk Scorecard
           </h4>
@@ -202,12 +215,17 @@ export default function RiskScorecard({ data }: RiskScorecardProps) {
     return (
       <div className="space-y-3">
         <div className="flex items-center gap-2">
-          <ShieldAlert size={18} className="text-aurora-green dark:text-aurora-green" />
+          <ShieldAlert
+            size={18}
+            className="text-aurora-green dark:text-aurora-green"
+          />
           <h4 className="text-base font-semibold text-starlight dark:text-starlight">
             Operational Risk Scorecard
           </h4>
         </div>
-        <div className="text-sm text-solar-amber text-center py-4 dark:text-solar-amber">{error}</div>
+        <div className="text-sm text-solar-amber text-center py-4 dark:text-solar-amber">
+          {error}
+        </div>
       </div>
     );
   }
@@ -220,14 +238,17 @@ export default function RiskScorecard({ data }: RiskScorecardProps) {
     <div className="space-y-4">
       <div className="space-y-2">
         <div className="flex items-center gap-2">
-          <ShieldAlert size={18} className="text-aurora-green dark:text-aurora-green" />
+          <ShieldAlert
+            size={18}
+            className="text-aurora-green dark:text-aurora-green"
+          />
           <h4 className="text-base font-semibold text-starlight dark:text-starlight">
             Operational Risk Scorecard
           </h4>
         </div>
         <p className="text-sm text-faint-star leading-relaxed dark:text-faint-star">
-          Real-time risk assessment for critical operational systems based on current
-          space weather conditions.
+          Real-time risk assessment for critical operational systems based on
+          current space weather conditions.
         </p>
       </div>
 
@@ -235,8 +256,13 @@ export default function RiskScorecard({ data }: RiskScorecardProps) {
       <div className="rounded-lg border border-deep-indigo bg-void-navy/30 dark:bg-void-navy/40 p-4">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
-            <AlertTriangle size={16} className="text-starlight dark:text-starlight" />
-            <span className="text-sm font-medium text-starlight dark:text-starlight">Overall Risk Level</span>
+            <AlertTriangle
+              size={16}
+              className="text-starlight dark:text-starlight"
+            />
+            <span className="text-sm font-medium text-starlight dark:text-starlight">
+              Overall Risk Level
+            </span>
           </div>
           <span
             className={`px-3 py-1 rounded-full text-sm font-bold ${riskColor(overallRisk.level)}`}
@@ -244,7 +270,7 @@ export default function RiskScorecard({ data }: RiskScorecardProps) {
             {overallRisk.level.toUpperCase()}
           </span>
         </div>
-        
+
         {/* Risk Progress Bar */}
         <div className="mb-3">
           <div className="h-2 bg-deep-indigo/50 dark:bg-deep-indigo/50 rounded-full overflow-hidden">
@@ -258,16 +284,30 @@ export default function RiskScorecard({ data }: RiskScorecardProps) {
         {/* Risk Statistics */}
         <div className="grid grid-cols-3 gap-2 text-center">
           <div className="bg-void-navy/50 dark:bg-void-navy/50 rounded-lg p-2">
-            <div className="text-lg font-bold text-red-600 dark:text-red-400">{overallRisk.criticalCount}</div>
-            <div className="text-xs text-faint-star dark:text-faint-star">Critical</div>
+            <div className="text-lg font-bold text-red-600 dark:text-red-400">
+              {overallRisk.criticalCount}
+            </div>
+            <div className="text-xs text-faint-star dark:text-faint-star">
+              Critical
+            </div>
           </div>
           <div className="bg-void-navy/50 dark:bg-void-navy/50 rounded-lg p-2">
-            <div className="text-lg font-bold text-solar-amber dark:text-solar-amber">{overallRisk.highCount}</div>
-            <div className="text-xs text-faint-star dark:text-faint-star">High</div>
+            <div className="text-lg font-bold text-solar-amber dark:text-solar-amber">
+              {overallRisk.highCount}
+            </div>
+            <div className="text-xs text-faint-star dark:text-faint-star">
+              High
+            </div>
           </div>
           <div className="bg-void-navy/50 dark:bg-void-navy/50 rounded-lg p-2">
-            <div className="text-lg font-bold text-aurora-green dark:text-aurora-green">{assessments.length - overallRisk.criticalCount - overallRisk.highCount}</div>
-            <div className="text-xs text-faint-star dark:text-faint-star">Low/Med</div>
+            <div className="text-lg font-bold text-aurora-green dark:text-aurora-green">
+              {assessments.length -
+                overallRisk.criticalCount -
+                overallRisk.highCount}
+            </div>
+            <div className="text-xs text-faint-star dark:text-faint-star">
+              Low/Med
+            </div>
           </div>
         </div>
       </div>
@@ -293,9 +333,16 @@ export default function RiskScorecard({ data }: RiskScorecardProps) {
                 />
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-semibold text-starlight dark:text-starlight">
-                      {a.system}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-semibold text-starlight dark:text-starlight">
+                        {a.system}
+                      </span>
+                      {a.system === "Polar Aviation" && polarAdvisoryActive && (
+                        <span className="px-1.5 py-0.5 rounded-full text-[10px] font-semibold bg-solar-amber/20 text-solar-amber border border-solar-amber/40">
+                          Advisory active
+                        </span>
+                      )}
+                    </div>
                     <div className="flex items-center gap-2">
                       <span
                         className={`px-2 py-0.5 rounded-full text-xs font-bold ${riskColor(a.riskLevel)}`}
@@ -325,7 +372,10 @@ export default function RiskScorecard({ data }: RiskScorecardProps) {
                   {/* Always visible: Driver */}
                   {a.driver && (
                     <div className="flex items-center gap-1 mb-1">
-                      <Info size={12} className="text-faint-star/70 dark:text-faint-star/70" />
+                      <Info
+                        size={12}
+                        className="text-faint-star/70 dark:text-faint-star/70"
+                      />
                       <p className="text-xs text-faint-star/90 dark:text-faint-star/90">
                         <span className="font-medium">Driver:</span> {a.driver}
                       </p>

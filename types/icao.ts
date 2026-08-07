@@ -1,5 +1,3 @@
-// types/icao.ts
-
 export interface IcaoAdvisory {
   advisory_number: string;
   issue_time: string;
@@ -7,10 +5,12 @@ export interface IcaoAdvisory {
   valid_time_end: string;
   phenomenon: string;
   region: string;
+  affected_region?: string;
   advisory_text: string;
 }
 
 export interface IcaoAdvisoryResponse {
   advisories: IcaoAdvisory[];
   lastChecked: string;
+  fetchError?: string;
 }
