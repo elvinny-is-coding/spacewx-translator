@@ -157,7 +157,7 @@ export default function PolarRouteBrief({
           </Label>
           <Select
             value={selectedRouteId}
-            onValueChange={(val) => setSelectedRouteId(val)}
+            onValueChange={(val) => val && setSelectedRouteId(val)}
             disabled={isLoadingBrief}
           >
             <SelectTrigger

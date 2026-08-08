@@ -124,7 +124,8 @@ export default function MissionImpactSimulator({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handlePresetChange = (preset: string) => {
+  const handlePresetChange = (preset: string | null) => {
+    if (!preset) return;
     setSelectedPreset(preset);
     const now = new Date();
     let startTime = now;
