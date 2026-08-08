@@ -164,7 +164,7 @@ export default function AuroraCalendar() {
               size={20}
               className="text-aurora-green dark:text-aurora-green"
             />
-            Aurora Calendar
+            When and where to see the aurora.
           </h3>
 
           {/* View toggle */}

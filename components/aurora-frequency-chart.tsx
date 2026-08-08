@@ -9,7 +9,6 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  Cell,
   ResponsiveContainer,
 } from "recharts";
 import { Button } from "@/components/ui/button";
@@ -143,7 +142,11 @@ export default function AuroraFrequencyChart({
       const diff = a.count - b.count;
       return sortOrder === "desc" ? -diff : diff;
     });
-    return data;
+    // Add fill colour to each data point
+    return data.map((d) => ({
+      ...d,
+      fill: maxKpToHex(d.maxKp),
+    }));
   }, [locationFrequencies, hideZero, sortOrder]);
 
   if (!forecast || forecast.length === 0) {
@@ -299,16 +302,14 @@ export default function AuroraFrequencyChart({
                   color: "#E7ECF5",
                   fontSize: "0.875rem",
                 }}
+                itemStyle={{ color: "#FFFFFF" }}
+                labelStyle={{ color: "#8A93A8" }}
                 formatter={(value: any, name: any) => {
                   if (name === "count") return [`${value} windows`, "Windows"];
                   return [value, name];
                 }}
               />
-              <Bar dataKey="count" radius={[0, 4, 4, 0]}>
-                {chartData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={maxKpToHex(entry.maxKp)} />
-                ))}
-              </Bar>
+              <Bar dataKey="count" radius={[0, 4, 4, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>

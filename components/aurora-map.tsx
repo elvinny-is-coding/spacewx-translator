@@ -253,7 +253,7 @@ function VisibilityPanel({
   hasInteracted: boolean;
 }) {
   return (
-    <Card className="absolute bottom-4 left-4 z-[1000] w-56 border border-void-navy bg-deep-indigo/90 backdrop-blur-sm shadow-lg transition-all duration-300">
+    <Card className="absolute bottom-4 left-4 z-45 w-56 border border-void-navy bg-deep-indigo/90 backdrop-blur-sm shadow-lg transition-all duration-300 dark:bg-deep-indigo/90 dark:border-void-navy" style={{ zIndex: 45 }}>
       <CardContent className="p-3 space-y-1 relative">
         <p className="text-xs text-faint-star truncate pr-4">
           {locationName || "Selected location"}
@@ -280,7 +280,7 @@ function VisibilityPanel({
 // ── Map Legend ──
 function MapLegend() {
   return (
-    <Card className="absolute bottom-4 right-4 z-[1000] w-[280px] border border-void-navy bg-deep-indigo/90 backdrop-blur-sm shadow-lg hidden sm:block">
+    <Card className="absolute bottom-4 right-4 z-40 w-[280px] border border-void-navy bg-deep-indigo/90 backdrop-blur-sm shadow-lg hidden sm:block dark:bg-deep-indigo/90 dark:border-void-navy">
       <CardContent className="p-3 space-y-3">
         <div className="flex items-center justify-between">
           <p className="text-xs font-semibold text-starlight flex items-center gap-1.5">
@@ -345,19 +345,27 @@ export default function AuroraMap({
   const isDark = theme === "dark" || theme === "system";
 
   // Theme-aware marker icons
-  const userIcon = useMemo(() => L.divIcon({
-    className: "",
-    html: `<div style="width:14px;height:14px;background:${isDark ? '#3ECF8E' : '#047857'};border-radius:50%;box-shadow:0 0 10px ${isDark ? '#3ECF8E' : '#047857'};border:2px solid #fff;"></div>`,
-    iconSize: [14, 14],
-    iconAnchor: [7, 7],
-  }), [isDark]);
+  const userIcon = useMemo(
+    () =>
+      L.divIcon({
+        className: "",
+        html: `<div style="width:14px;height:14px;background:${isDark ? "#3ECF8E" : "#047857"};border-radius:50%;box-shadow:0 0 10px ${isDark ? "#3ECF8E" : "#047857"};border:2px solid #fff;"></div>`,
+        iconSize: [14, 14],
+        iconAnchor: [7, 7],
+      }),
+    [isDark],
+  );
 
-  const tapIcon = useMemo(() => L.divIcon({
-    className: "",
-    html: `<div style="width:12px;height:12px;background:#F5A623;border-radius:50%;box-shadow:0 0 8px #F5A623;border:2px solid #fff;"></div>`,
-    iconSize: [12, 12],
-    iconAnchor: [6, 6],
-  }), []);
+  const tapIcon = useMemo(
+    () =>
+      L.divIcon({
+        className: "",
+        html: `<div style="width:12px;height:12px;background:#F5A623;border-radius:50%;box-shadow:0 0 8px #F5A623;border:2px solid #fff;"></div>`,
+        iconSize: [12, 12],
+        iconAnchor: [6, 6],
+      }),
+    [],
+  );
 
   const [userLocation, setUserLocation] = useState<{
     lat: number;
@@ -512,12 +520,12 @@ export default function AuroraMap({
     <Card className="border border-void-navy bg-deep-indigo overflow-hidden shadow-sm dark:shadow-lg">
       <CardContent className="p-0 relative" style={{ height: "500px" }}>
         {isLoading && (
-          <div className="absolute inset-0 z-[1000] flex items-center justify-center bg-deep-indigo/70 text-starlight text-sm">
+          <div className="absolute inset-0 z-40 flex items-center justify-center bg-deep-indigo/70 text-starlight text-sm dark:bg-deep-indigo/70 dark:text-starlight">
             Loading aurora data…
           </div>
         )}
         {error && (
-          <div className="absolute inset-0 z-[1000] flex items-center justify-center bg-deep-indigo/70 text-solar-amber text-sm">
+          <div className="absolute inset-0 z-40 flex items-center justify-center bg-deep-indigo/70 text-solar-amber text-sm dark:bg-deep-indigo/70 dark:text-solar-amber">
             {error}
           </div>
         )}
@@ -527,7 +535,12 @@ export default function AuroraMap({
           zoom={2}
           minZoom={2}
           maxZoom={8}
-          style={{ height: "100%", width: "100%", background: isDark ? "#0B1120" : "#e5e7eb" }}
+          style={{
+            height: "100%",
+            width: "100%",
+            background: isDark ? "#0B1120" : "#e5e7eb",
+            zIndex: 30,
+          }}
           maxBounds={WORLD_BOUNDS}
           maxBoundsViscosity={1.0}
           zoomControl={false}
@@ -582,7 +595,7 @@ export default function AuroraMap({
           )}
         </MapContainer>
 
-        <div className="absolute top-3 right-3 z-[1000] flex flex-col gap-2">
+        <div className="absolute top-3 right-3 z-40 flex flex-col gap-2">
           <Button
             size="sm"
             onClick={requestGeolocation}
@@ -594,19 +607,19 @@ export default function AuroraMap({
         </div>
 
         {geoError && (
-          <div className="absolute top-12 right-3 z-[1000] bg-deep-indigo/90 text-solar-amber text-xs p-2 rounded shadow">
+          <div className="absolute top-12 right-3 z-40 bg-deep-indigo/90 text-solar-amber text-xs p-2 rounded shadow dark:bg-deep-indigo/90 dark:text-solar-amber">
             {geoError}
           </div>
         )}
 
         {ovalPoints ? (
-          <div className="absolute top-20 left-3 z-[1000] bg-deep-indigo/90 text-aurora-green text-[10px] px-2 py-1 rounded shadow">
+          <div className="absolute top-20 left-3 z-40 bg-deep-indigo/90 text-aurora-green text-[10px] px-2 py-1 rounded shadow dark:bg-deep-indigo/90 dark:text-aurora-green">
             Simplified forecast oval (Kp {ovalKp})
           </div>
         ) : (
           grid &&
           activeCellCount === 0 && (
-            <div className="absolute top-20 left-3 z-[1000] bg-deep-indigo/90 text-faint-star text-xs px-3 py-1.5 rounded shadow">
+            <div className="absolute top-20 left-3 z-40 bg-deep-indigo/90 text-faint-star text-xs px-3 py-1.5 rounded shadow dark:bg-deep-indigo/90 dark:text-faint-star">
               No significant aurora activity in this view right now
             </div>
           )
