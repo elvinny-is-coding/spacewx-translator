@@ -14,6 +14,7 @@ import {
   GraduationCap,
   CalendarDays,
   ChevronDown,
+  Gauge,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -60,6 +61,19 @@ const NAV_GROUPS: NavGroup[] = [
         label: "Forecast",
         icon: TrendingUp,
         ariaLabel: "Forecast Charts",
+      },
+    ],
+  },
+  {
+    label: "Scales",
+    icon: Gauge,
+    ariaLabel: "NOAA Space Weather Scales",
+    children: [
+      {
+        href: "/scales",
+        label: "NOAA Scales",
+        icon: Gauge,
+        ariaLabel: "NOAA Space Weather Scales Dashboard",
       },
     ],
   },
