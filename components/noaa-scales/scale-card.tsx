@@ -12,10 +12,9 @@ interface ScaleCardProps {
 }
 
 export default function ScaleCard({ scale, currentLevel, icon: Icon }: ScaleCardProps) {
-  // Treat null as level 0 (no active storm)
+  const color = getScaleColor(scale.type, currentLevel);
+  const descriptor = getScaleDescriptor(scale.type, currentLevel);
   const effectiveLevel = currentLevel ?? 0;
-  const color = getScaleColor(scale.type, effectiveLevel);
-  const descriptor = getScaleDescriptor(scale.type, effectiveLevel);
 
   return (
     <Card className="border-none bg-deep-indigo">

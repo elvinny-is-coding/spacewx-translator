@@ -23,28 +23,23 @@ const SCALE_ICONS = {
 export default function ScalesDashboard({ data }: ScalesDashboardProps) {
   const [activeScale, setActiveScale] = useState<"G" | "R" | "S">("G");
 
-  // Treat null as level 0 (no active storm)
-  const effectiveG = data.noaaScaleG ?? 0;
-  const effectiveR = data.noaaScaleR ?? 0;
-  const effectiveS = data.noaaScaleS ?? 0;
-
   return (
     <div className="space-y-6">
       {/* Current Status Overview */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <ScaleCard
           scale={NOAA_SCALES.G}
-          currentLevel={effectiveG}
+          currentLevel={data.noaaScaleG}
           icon={SCALE_ICONS.G}
         />
         <ScaleCard
           scale={NOAA_SCALES.R}
-          currentLevel={effectiveR}
+          currentLevel={data.noaaScaleR}
           icon={SCALE_ICONS.R}
         />
         <ScaleCard
           scale={NOAA_SCALES.S}
-          currentLevel={effectiveS}
+          currentLevel={data.noaaScaleS}
           icon={SCALE_ICONS.S}
         />
       </div>
@@ -80,11 +75,11 @@ export default function ScalesDashboard({ data }: ScalesDashboardProps) {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <ScaleLevelTabs
               scale={NOAA_SCALES.G}
-              currentLevel={effectiveG}
+              currentLevel={data.noaaScaleG}
             />
             <ScaleImpactList
               scale={NOAA_SCALES.G}
-              currentLevel={effectiveG}
+              currentLevel={data.noaaScaleG}
             />
           </div>
         </TabsContent>
@@ -93,11 +88,11 @@ export default function ScalesDashboard({ data }: ScalesDashboardProps) {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <ScaleLevelTabs
               scale={NOAA_SCALES.R}
-              currentLevel={effectiveR}
+              currentLevel={data.noaaScaleR}
             />
             <ScaleImpactList
               scale={NOAA_SCALES.R}
-              currentLevel={effectiveR}
+              currentLevel={data.noaaScaleR}
             />
           </div>
         </TabsContent>
@@ -106,11 +101,11 @@ export default function ScalesDashboard({ data }: ScalesDashboardProps) {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <ScaleLevelTabs
               scale={NOAA_SCALES.S}
-              currentLevel={effectiveS}
+              currentLevel={data.noaaScaleS}
             />
             <ScaleImpactList
               scale={NOAA_SCALES.S}
-              currentLevel={effectiveS}
+              currentLevel={data.noaaScaleS}
             />
           </div>
         </TabsContent>

@@ -12,7 +12,6 @@ interface ScaleLevelTabsProps {
 }
 
 export default function ScaleLevelTabs({ scale, currentLevel }: ScaleLevelTabsProps) {
-  // Treat null as level 0 (no active storm)
   const effectiveLevel = currentLevel ?? 0;
   return (
     <Tabs defaultValue={effectiveLevel.toString()} className="w-full">

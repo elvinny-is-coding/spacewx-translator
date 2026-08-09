@@ -11,9 +11,7 @@ interface ScaleImpactListProps {
 }
 
 export default function ScaleImpactList({ scale, currentLevel }: ScaleImpactListProps) {
-  // Treat null as level 0 (no active storm)
-  const effectiveLevel = currentLevel ?? 0;
-  const level = getScaleLevel(scale.type, effectiveLevel);
+  const level = getScaleLevel(scale.type, currentLevel);
 
   const impacts = [
     {

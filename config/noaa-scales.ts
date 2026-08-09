@@ -239,15 +239,15 @@ export const NOAA_SCALES: Record<"G" | "R" | "S", ScaleDefinition> = {
 export function getScaleLevel(
   type: "G" | "R" | "S",
   level: number | null
-): ScaleLevel | null {
-  if (level === null) return null;
+): ScaleLevel {
+  const effectiveLevel = level ?? 0;
   const scale = NOAA_SCALES[type];
-  return scale.levels.find((l) => l.level === level) || null;
+  return scale.levels.find((l) => l.level === effectiveLevel) || scale.levels[0];
 }
 
 export function getScaleColor(type: "G" | "R" | "S", level: number | null): string {
   const scaleLevel = getScaleLevel(type, level);
-  return scaleLevel?.color || "#3ecf8e";
+  return scaleLevel.color;
 }
 
 export function getScaleDescriptor(
@@ -255,5 +255,5 @@ export function getScaleDescriptor(
   level: number | null
 ): string {
   const scaleLevel = getScaleLevel(type, level);
-  return scaleLevel?.descriptor || "Unknown";
+  return scaleLevel.descriptor;
 }
