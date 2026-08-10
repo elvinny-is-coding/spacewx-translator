@@ -11,19 +11,15 @@ export async function GET(request: NextRequest) {
     const { error } = await supabase.auth.exchangeCodeForSession(code);
 
     if (!error) {
-      const forwardedHost = request.headers.get("x-forwarded-host");
-      const isLocalEnv = process.env.NODE_ENV === "development";
-      
-      if (isLocalEnv) {
-        return NextResponse.redirect(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}${next}`);
-      } else if (forwardedHost) {
-        return NextResponse.redirect(`https://${forwardedHost}${next}`);
-      } else {
-        return NextResponse.redirect(`${process.env.NEXT_PUBLIC_APP_URL}${next}`);
-      }
+      // Get the base URL from the request or environment
+      const baseUrl = request.nextUrl.origin;
+      return NextResponse.redirect(`${baseUrl}${next}`);
+    } else {
+      console.error("Auth error:", error);
     }
   }
 
   // Return the user to an error page with instructions
-  return NextResponse.redirect(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/auth/auth-code-error`);
+  const baseUrl = request.nextUrl.origin;
+  return NextResponse.redirect(`${baseUrl}/auth/auth-code-error`);
 }
