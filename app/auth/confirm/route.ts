@@ -15,20 +15,21 @@ export async function GET(request: NextRequest) {
       const { data: { user } } = await supabase.auth.getUser();
       
       if (user) {
-        // Create or update user preferences with email_verified = true
+        // Try to create user preferences with email_verified = true
         const { error: prefError } = await supabase
           .from("user_preferences")
-          .upsert({
+          .insert({
             user_id: user.id,
             email_verified: true,
             email_alerts_enabled: false,
-          }, {
-            onConflict: 'user_id',
-            ignoreDuplicates: false
           });
         
+        // If insert fails (already exists), try to update
         if (prefError) {
-          console.error("Failed to update user preferences:", prefError);
+          await supabase
+            .from("user_preferences")
+            .update({ email_verified: true })
+            .eq("user_id", user.id);
         }
       }
 

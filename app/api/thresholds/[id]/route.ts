@@ -56,6 +56,7 @@ export async function PUT(
       .from("user_thresholds")
       .update(updateData)
       .eq("id", id)
+      .eq("user_id", String(user.id)) // Ensure ownership with string conversion
       .select()
       .single();
 
@@ -97,7 +98,8 @@ export async function DELETE(
     const { error } = await supabase
       .from("user_thresholds")
       .delete()
-      .eq("id", id);
+      .eq("id", id)
+      .eq("user_id", String(user.id)); // Ensure ownership with string conversion
 
     if (error) {
       console.error("Supabase delete error:", error);

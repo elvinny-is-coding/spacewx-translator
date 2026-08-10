@@ -7,6 +7,7 @@ export async function POST(request: NextRequest) {
     const { data: { user }, error: userError } = await supabase.auth.getUser();
 
     if (userError || !user) {
+      console.error("Auth error:", userError);
       return NextResponse.json(
         { error: "Unauthorized" },
         { status: 401 }
@@ -33,10 +34,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    console.log("Inserting threshold:", {
+      user_id: user.id,
+      user_id_string: String(user.id),
+      parameter,
+      operator,
+      value: numVal,
+      label
+    });
+
     const { data, error } = await supabase
       .from("user_thresholds")
       .insert({
-        user_id: user.id::text, // Cast to text to match existing schema
+        user_id: String(user.id), // Convert UUID to string to match existing TEXT schema
         parameter,
         operator,
         value: numVal,
@@ -78,7 +88,7 @@ export async function GET(request: NextRequest) {
     const { data, error } = await supabase
       .from("user_thresholds")
       .select("*")
-      .eq("user_id", user.id::text) // Cast to text to match existing schema
+      .eq("user_id", String(user.id)) // Convert UUID to string to match existing TEXT schema
       .order("created_at", { ascending: false });
 
     if (error) {
