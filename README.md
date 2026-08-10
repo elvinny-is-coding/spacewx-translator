@@ -345,7 +345,7 @@ aura/
 
 ## Demo Video
 
-[▶️ Watch the demo (≤ 3 minutes)](https://your-demo-video-link.com)
+[▶️ Watch the demo (≤ 3 minutes)](https://www.youtube.com/watch?v=IRBeBnDvg2s)
 
 The video showcases:
 
