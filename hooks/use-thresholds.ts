@@ -1,23 +1,11 @@
 "use client";
 
-import { useState, useCallback, useMemo, useEffect } from "react";
+import { useState, useCallback, useMemo, useEffect, useRef } from "react";
 import { toast } from "sonner";
 import type { Threshold, ThresholdAlert } from "@/types/threshold";
 import type { SpaceWeatherData } from "@/types/spacewx";
 import { evaluateThresholds } from "@/lib/thresholds";
-import { generateUUID } from "@/lib/utils";
-
-const USER_ID_KEY = "spacewx-user-id";
-
-function getUserId(): string {
-  if (typeof window === "undefined") return "";
-  let id = localStorage.getItem(USER_ID_KEY);
-  if (!id) {
-    id = generateUUID();
-    localStorage.setItem(USER_ID_KEY, id);
-  }
-  return id;
-}
+import { createClient } from "@/lib/supabase/client";
 
 interface UseThresholdsReturn {
   thresholds: Threshold[];
@@ -38,14 +26,25 @@ export function useThresholds(
 ): UseThresholdsReturn {
   const [thresholds, setThresholds] = useState<Threshold[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const userId = getUserId();
+  const supabase = createClient();
+  const previousBreachedIds = useRef<Set<string>>(new Set());
 
   // Fetch thresholds from Supabase on mount
   useEffect(() => {
     let cancelled = false;
     async function fetchThresholds() {
       try {
-        const res = await fetch(`/api/thresholds?user_id=${userId}`);
+        const { data: { user } } = await supabase.auth.getUser();
+        
+        if (!user) {
+          if (!cancelled) {
+            setThresholds([]);
+            setIsLoading(false);
+          }
+          return;
+        }
+
+        const res = await fetch("/api/thresholds");
         if (!res.ok) throw new Error("Failed to fetch thresholds");
         const json = await res.json();
         if (!cancelled) {
@@ -63,7 +62,7 @@ export function useThresholds(
     return () => {
       cancelled = true;
     };
-  }, [userId]);
+  }, [supabase]);
 
   const addThreshold = useCallback(
     async (
@@ -77,7 +76,6 @@ export function useThresholds(
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            user_id: userId,
             parameter,
             operator,
             value,
@@ -92,7 +90,7 @@ export function useThresholds(
         toast.error("Could not add threshold");
       }
     },
-    [userId],
+    [],
   );
 
   const updateThreshold = useCallback(
@@ -101,7 +99,7 @@ export function useThresholds(
         const res = await fetch(`/api/thresholds/${id}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ user_id: userId, ...updates }),
+          body: JSON.stringify(updates),
         });
         if (!res.ok) throw new Error("Failed to update threshold");
         const json = await res.json();
@@ -113,13 +111,13 @@ export function useThresholds(
         toast.error("Could not update threshold");
       }
     },
-    [userId],
+    [],
   );
 
   const deleteThreshold = useCallback(
     async (id: string) => {
       try {
-        const res = await fetch(`/api/thresholds/${id}?user_id=${userId}`, {
+        const res = await fetch(`/api/thresholds/${id}`, {
           method: "DELETE",
         });
         if (!res.ok) throw new Error("Failed to delete threshold");
@@ -129,13 +127,51 @@ export function useThresholds(
         toast.error("Could not delete threshold");
       }
     },
-    [userId],
+    [],
   );
 
   const breachedAlerts = useMemo(() => {
     if (!data) return [];
     return evaluateThresholds(thresholds, data);
   }, [data, thresholds]);
+
+  // Send email alerts for new breaches
+  useEffect(() => {
+    const newBreaches = breachedAlerts.filter(
+      alert => !previousBreachedIds.current.has(alert.threshold.id)
+    );
+
+    if (newBreaches.length > 0) {
+      // Update the set of breached IDs
+      const newIds = new Set(previousBreachedIds.current);
+      newBreaches.forEach(alert => newIds.add(alert.threshold.id));
+      previousBreachedIds.current = newIds;
+
+      // Send email alerts
+      sendEmailAlerts(newBreaches);
+    }
+  }, [breachedAlerts]);
+
+  const sendEmailAlerts = async (alerts: ThresholdAlert[]) => {
+    try {
+      const breaches = alerts.map(alert => ({
+        thresholdId: alert.threshold.id,
+        thresholdLabel: alert.threshold.label || `${alert.threshold.parameter} ${alert.threshold.operator} ${alert.threshold.value}`,
+        parameter: alert.threshold.parameter,
+        operator: alert.threshold.operator,
+        thresholdValue: alert.threshold.value,
+        currentValue: alert.currentValue,
+      }));
+
+      await fetch("/api/alerts/send-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ breaches }),
+      });
+    } catch (error) {
+      console.error("Failed to send email alerts:", error);
+    }
+  };
 
   return {
     thresholds,

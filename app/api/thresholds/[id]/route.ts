@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabase/admin";
+import { createClient } from "@/lib/supabase/server";
 import { validateThreshold } from "@/lib/thresholds";
 import type { Threshold } from "@/types/threshold";
 
@@ -8,16 +8,19 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    const { id } = await params;
-    const body = await request.json();
-    const { user_id, parameter, operator, value, label } = body;
+    const supabase = await createClient();
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
 
-    if (!user_id) {
+    if (userError || !user) {
       return NextResponse.json(
-        { error: "user_id is required" },
-        { status: 400 },
+        { error: "Unauthorized" },
+        { status: 401 }
       );
     }
+
+    const { id } = await params;
+    const body = await request.json();
+    const { parameter, operator, value, label } = body;
 
     // Build partial threshold for validation
     const partial: Threshold = {
@@ -49,24 +52,7 @@ export async function PUT(
       );
     }
 
-    // Verify ownership before update
-    const { data: existing, error: fetchError } = await supabaseAdmin
-      .from("user_thresholds")
-      .select("user_id")
-      .eq("id", id)
-      .single();
-
-    if (fetchError || !existing) {
-      return NextResponse.json(
-        { error: "Threshold not found" },
-        { status: 404 },
-      );
-    }
-    if (existing.user_id !== user_id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
-    }
-
-    const { data, error } = await supabaseAdmin
+    const { data, error } = await supabase
       .from("user_thresholds")
       .update(updateData)
       .eq("id", id)
@@ -96,35 +82,19 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
+    const supabase = await createClient();
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+
+    if (userError || !user) {
+      return NextResponse.json(
+        { error: "Unauthorized" },
+        { status: 401 }
+      );
+    }
+
     const { id } = await params;
-    const { searchParams } = new URL(request.url);
-    const user_id = searchParams.get("user_id");
 
-    if (!user_id) {
-      return NextResponse.json(
-        { error: "user_id is required" },
-        { status: 400 },
-      );
-    }
-
-    // Verify ownership
-    const { data: existing, error: fetchError } = await supabaseAdmin
-      .from("user_thresholds")
-      .select("user_id")
-      .eq("id", id)
-      .single();
-
-    if (fetchError || !existing) {
-      return NextResponse.json(
-        { error: "Threshold not found" },
-        { status: 404 },
-      );
-    }
-    if (existing.user_id !== user_id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
-    }
-
-    const { error } = await supabaseAdmin
+    const { error } = await supabase
       .from("user_thresholds")
       .delete()
       .eq("id", id);

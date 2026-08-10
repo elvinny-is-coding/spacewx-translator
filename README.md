@@ -241,6 +241,8 @@ Create the following tables in your Supabase project:
 - `latest_ovation` – cached OVATION aurora grid (singleton)
 - `donki_events` – NASA DONKI flare/CME/storm history
 - `user_thresholds` – custom alert thresholds
+- `user_preferences` – user email alert preferences
+- `email_alert_log` – email sending log for rate limiting
 - `risk_scorecards` – cached risk assessments
 - `mission_advisories` – cached mission advisories
 - `postmortems` – AI‑generated storm incident reports
@@ -254,10 +256,33 @@ GRANT ALL ON public.latest_alerts TO service_role;
 GRANT ALL ON public.latest_ovation TO service_role;
 GRANT ALL ON public.donki_events TO service_role;
 GRANT ALL ON public.user_thresholds TO service_role;
+GRANT ALL ON public.user_preferences TO service_role;
+GRANT ALL ON public.email_alert_log TO service_role;
 GRANT ALL ON public.risk_scorecards TO service_role;
 GRANT ALL ON public.mission_advisories TO service_role;
 GRANT ALL ON public.postmortems TO service_role;
 ```
+
+Run the migration files to set up the new tables and RLS policies:
+
+```bash
+# Run the user_preferences table migration
+supabase db push supabase/migrations/create_user_preferences.sql
+
+# Run the user_thresholds RLS update migration
+supabase db push supabase/migrations/update_user_thresholds_rls.sql
+
+# Run the email_alert_log table migration for rate limiting
+supabase db push supabase/migrations/create_email_alert_log.sql
+```
+
+**Additional Setup for Email Alerts:**
+
+1. Enable Supabase Auth in your project dashboard
+2. Set up email templates for magic links and verification
+3. Configure SMTP settings in Supabase Auth (recommended: Resend)
+4. Add `NEXT_PUBLIC_SUPABASE_ANON_KEY` to your environment variables
+5. Add `RESEND_API_KEY` for email sending (optional, for better control)
 
 ### Deploy to Vercel
 

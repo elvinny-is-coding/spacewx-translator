@@ -1,15 +1,25 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabase/admin";
+import { createClient } from "@/lib/supabase/server";
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    const { user_id, parameter, operator, value, label } = body;
+    const supabase = await createClient();
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
 
-    if (!user_id || !parameter || !operator || value == null) {
+    if (userError || !user) {
+      return NextResponse.json(
+        { error: "Unauthorized" },
+        { status: 401 }
+      );
+    }
+
+    const body = await request.json();
+    const { parameter, operator, value, label } = body;
+
+    if (!parameter || !operator || value == null) {
       return NextResponse.json(
         {
-          error: "Missing required fields: user_id, parameter, operator, value",
+          error: "Missing required fields: parameter, operator, value",
         },
         { status: 400 },
       );
@@ -23,10 +33,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { data, error } = await supabaseAdmin
+    const { data, error } = await supabase
       .from("user_thresholds")
       .insert({
-        user_id,
+        user_id: user.id,
         parameter,
         operator,
         value: numVal,
@@ -55,20 +65,20 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url);
-    const user_id = searchParams.get("user_id");
+    const supabase = await createClient();
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
 
-    if (!user_id) {
+    if (userError || !user) {
       return NextResponse.json(
-        { error: "user_id is required" },
-        { status: 400 },
+        { error: "Unauthorized" },
+        { status: 401 }
       );
     }
 
-    const { data, error } = await supabaseAdmin
+    const { data, error } = await supabase
       .from("user_thresholds")
       .select("*")
-      .eq("user_id", user_id)
+      .eq("user_id", user.id)
       .order("created_at", { ascending: false });
 
     if (error) {
