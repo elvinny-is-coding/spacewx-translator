@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
     const { data, error } = await supabase
       .from("user_thresholds")
       .insert({
-        user_id: user.id,
+        user_id: user.id::text, // Cast to text to match existing schema
         parameter,
         operator,
         value: numVal,
@@ -78,7 +78,7 @@ export async function GET(request: NextRequest) {
     const { data, error } = await supabase
       .from("user_thresholds")
       .select("*")
-      .eq("user_id", user.id)
+      .eq("user_id", user.id::text) // Cast to text to match existing schema
       .order("created_at", { ascending: false });
 
     if (error) {
