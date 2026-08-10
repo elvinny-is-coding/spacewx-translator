@@ -192,7 +192,7 @@ All NOAA endpoints are public and require no API key. NASA DONKI requires a free
 ### Installation
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/aura.git
+git clone https://github.com/elvinny-is-coding/spacewx-translator
 cd aura
 npm install
 ````
@@ -345,7 +345,7 @@ aura/
 
 ## Demo Video
 
-[▶️ Watch the demo (≤ 3 minutes)](https://www.youtube.com/watch?v=IRBeBnDvg2s)
+[▶️ Watch the demo (≤ 3 minutes)](https://www.youtube.com/watch?v=WZYHyr9t9sM)
 
 The video showcases:
 
